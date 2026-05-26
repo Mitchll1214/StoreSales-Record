@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>销售统计明细表 - 门店销售统计系统</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <%- include('../partials/header', { user }) %>
+
+  <div class="layout-container">
+    <div class="sidebar">
+      <div class="sidebar-title text-muted small px-3 py-2">管理员功能</div>
+      <%- include('../partials/sidebar-admin', { currentPage }) %>
+    </div>
+
+    <div class="main-content">
+      <h4 class="mb-4"><i class="bi bi-table me-2"></i><%= title %></h4>
+
+      <!-- 筛选栏 -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-body">
+          <div class="row g-3 align-items-end">
+            <div class="col-md-2">
+              <label class="form-label">开始日期</label>
+              <input type="date" class="form-control" id="filterStartDate">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">结束日期</label>
+              <input type="date" class="form-control" id="filterEndDate">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">销售门店</label>
+              <select class="form-select" id="filterStore">
+                <option value="">全部门店</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">商品（可多选）</label>
+              <select class="form-select" id="filterProducts" multiple style="height:100px">
+              </select>
+              <div class="form-text small">按住Ctrl可多选</div>
+            </div>
+            <div class="col-md-3">
+              <div class="d-flex gap-2">
+                <button class="btn btn-primary flex-fill" onclick="loadData(1)">
+                  <i class="bi bi-search"></i> 查询
+                </button>
+                <button class="btn btn-outline-success flex-fill" onclick="exportCSV()" id="exportBtn">
+                  <i class="bi bi-download"></i> 导出CSV
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 数据表格 -->
+      <div class="card shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">销售明细</h5>
+          <span class="text-muted small" id="totalInfo"></span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>门店编码</th>
+                  <th>商品名称</th>
+                  <th>销售数量</th>
+                  <th>销售人员</th>
+                  <th>销售日期</th>
+                  <th>登记时间</th>
+                  <th style="width:80px">操作</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody">
+                <tr><td colspan="7" class="text-center text-muted py-4">点击"查询"按钮加载数据</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card-footer bg-white">
+          <nav id="pagination"></nav>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const pageSize = 10;
+    let currentPage = 1;
+
+    // 初始化日期：默认最近7天
+    (function initDates() {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      document.getElementById('filterEndDate').value = now.toISOString().slice(0, 10);
+      document.getElementById('filterStartDate').value = sevenDaysAgo.toISOString().slice(0, 10);
+    })();
+
+    // 加载门店下拉
+    async function loadStoreFilter() {
+      try {
+        const res = await fetch('/api/admin/stores');
+        const stores = await res.json();
+        const sel = document.getElementById('filterStore');
+        stores.forEach(s => { sel.innerHTML += `<option value="${s.store_code}">${s.store_code} - ${s.store_name}</option>`; });
+      } catch (e) { /* ignore */ }
+    }
+    loadStoreFilter();
+
+    // 加载商品多选
+    async function loadProductFilter() {
+      try {
+        const res = await fetch('/api/admin/products');
+        const products = await res.json();
+        const active = products.filter(p => p.status === 1);
+        const sel = document.getElementById('filterProducts');
+        sel.innerHTML = active.map(p => `<option value="${p.id}">${p.product_name} (${p.product_code})</option>`).join('');
+      } catch (e) { /* ignore */ }
+    }
+    loadProductFilter();
+
+    function buildParams(page) {
+      const params = new URLSearchParams();
+      const startDate = document.getElementById('filterStartDate').value;
+      const endDate = document.getElementById('filterEndDate').value;
+      const storeCode = document.getElementById('filterStore').value;
+      const selectedProducts = Array.from(document.getElementById('filterProducts').selectedOptions).map(o => o.value);
+
+      if (startDate) params.set('start_date', startDate + 'T00:00:00');
+      if (endDate) params.set('end_date', endDate + 'T23:59:59');
+      if (storeCode) params.set('store_code', storeCode);
+      if (selectedProducts.length > 0) params.set('product_ids', selectedProducts.join(','));
+      params.set('page', page || currentPage);
+      params.set('page_size', pageSize);
+      return params;
+    }
+
+    async function loadData(page) {
+      currentPage = page || 1;
+      try {
+        const res = await fetch('/api/admin/sales-records?' + buildParams(page).toString());
+        const result = await res.json();
+
+        document.getElementById('totalInfo').textContent = `共 ${result.total} 条记录`;
+
+        const tbody = document.getElementById('tableBody');
+        if (!result.data || result.data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">暂无数据</td></tr>';
+          renderPagination(0, 1);
+          return;
+        }
+
+        tbody.innerHTML = result.data.map(r => `
+          <tr>
+            <td><code>${r.store_code}</code></td>
+            <td>${r.product_name}</td>
+            <td><span class="badge bg-primary">${r.quantity}</span></td>
+            <td>${r.sales_person_name}</td>
+            <td>${new Date(r.sale_date).toLocaleString('zh-CN')}</td>
+            <td>${new Date(r.recorded_at).toLocaleString('zh-CN')}</td>
+            <td>
+              <button class="btn btn-outline-danger btn-sm" title="删除"
+                onclick="deleteRecord(${r.id})">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `).join('');
+
+        renderPagination(result.total_pages, currentPage);
+      } catch (err) {
+        document.getElementById('tableBody').innerHTML =
+          '<tr><td colspan="7" class="text-center text-danger py-4">加载失败</td></tr>';
+      }
+    }
+
+    function renderPagination(totalPages, current) {
+      const nav = document.getElementById('pagination');
+      if (totalPages <= 1) { nav.innerHTML = ''; return; }
+
+      let html = '<ul class="pagination pagination-sm justify-content-center mb-0">';
+      html += `<li class="page-item ${current === 1 ? 'disabled' : ''}">
+        <a class="page-link" href="#" onclick="loadData(${current - 1});return false">上一页</a></li>`;
+      for (let i = 1; i <= totalPages; i++) {
+        html += `<li class="page-item ${i === current ? 'active' : ''}">
+          <a class="page-link" href="#" onclick="loadData(${i});return false">${i}</a></li>`;
+      }
+      html += `<li class="page-item ${current === totalPages ? 'disabled' : ''}">
+        <a class="page-link" href="#" onclick="loadData(${current + 1});return false">下一页</a></li>`;
+      html += '</ul>';
+      nav.innerHTML = html;
+    }
+
+    // 删除记录
+    async function deleteRecord(id) {
+      if (!confirm('确定要删除这条销售记录吗？此操作不可恢复。')) return;
+      try {
+        const res = await fetch('/api/admin/sales-records/' + id, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          loadData(currentPage);
+        } else {
+          alert(data.error || '删除失败');
+        }
+      } catch (err) {
+        alert('删除失败，请重试');
+      }
+    }
+
+    // 导出CSV（使用当前筛选条件）
+    function exportCSV() {
+      const params = buildParams(1);
+      params.delete('page');
+      params.delete('page_size');
+      const qs = params.toString();
+      if (!params.get('start_date') && !params.get('end_date')) {
+        alert('请先设置筛选条件再导出');
+        return;
+      }
+      window.open('/api/admin/sales-records/export?' + qs, '_blank');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>人员管理 - 门店销售统计系统</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <%- include('../partials/header', { user }) %>
+
+  <div class="layout-container">
+    <div class="sidebar">
+      <div class="sidebar-title text-muted small px-3 py-2">管理员功能</div>
+      <%- include('../partials/sidebar-admin', { currentPage }) %>
+    </div>
+
+    <div class="main-content">
+      <h4 class="mb-4"><i class="bi bi-people me-2"></i><%= title %></h4>
+
+      <!-- 筛选栏 -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-body">
+          <div class="row g-3 align-items-end">
+            <div class="col-md-2">
+              <label class="form-label">门店编码</label>
+              <input type="text" class="form-control" id="filterStoreCode" placeholder="门店编码">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">姓名</label>
+              <input type="text" class="form-control" id="filterName" placeholder="姓名">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">手机号</label>
+              <input type="text" class="form-control" id="filterPhone" placeholder="手机号">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">在职状态</label>
+              <select class="form-select" id="filterStatus">
+                <option value="">全部</option>
+                <option value="active">启用</option>
+                <option value="pending">待激活</option>
+                <option value="disabled">禁用</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <button class="btn btn-primary w-100" onclick="loadUsers()"><i class="bi bi-search"></i> 查询</button>
+            </div>
+            <div class="col-md-2 text-end">
+              <button class="btn btn-success w-100" onclick="openAddModal()"><i class="bi bi-plus-lg"></i> 新增人员</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 人员表格 -->
+      <div class="card shadow-sm">
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:40px"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                  <th>门店编码</th>
+                  <th>姓名</th>
+                  <th>手机号</th>
+                  <th>角色</th>
+                  <th>在职状态</th>
+                  <th style="width:80px">操作</th>
+                </tr>
+              </thead>
+              <tbody id="userTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新增/编辑人员模态框 -->
+  <div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="userModalTitle">新增人员</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div id="modalMsg"></div>
+          <input type="hidden" id="editUserId">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">手机号 <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="editPhone" placeholder="必填" maxlength="11">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">姓名 <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="editName" placeholder="必填">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">性别 <span class="text-danger">*</span></label>
+              <select class="form-select" id="editGender">
+                <option value="">请选择</option>
+                <option value="男">男</option>
+                <option value="女">女</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">角色</label>
+              <select class="form-select" id="editRole">
+                <option value="clerk">店员</option>
+                <option value="admin">管理员</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">在职状态</label>
+              <select class="form-select" id="editStatus">
+                <option value="pending">待激活</option>
+                <option value="active">启用</option>
+                <option value="disabled">禁用</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">负责门店编码 <span class="text-danger">*</span></label>
+              <select class="form-select" id="editStoreCode">
+                <option value="">请选择门店</option>
+              </select>
+            </div>
+            <div class="col-md-6" id="productFieldGroup">
+              <label class="form-label">销售商品（选填，可多选）</label>
+              <div class="border rounded p-2" style="max-height:120px;overflow-y:auto" id="editProductCheckboxes">
+                <span class="text-muted small">加载中...</span>
+              </div>
+            </div>
+          </div>
+          <div class="form-check mt-3" id="resetPwdGroup" style="display:none">
+            <input class="form-check-input" type="checkbox" id="resetPassword">
+            <label class="form-check-label text-danger">重置密码为默认密码（88888888）</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-primary" id="saveUserBtn" onclick="saveUser()">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const userModal = new bootstrap.Modal(document.getElementById('userModal'));
+    let selectedUserId = null;
+
+    // 加载门店下拉
+    async function loadStoreOptions() {
+      try {
+        const res = await fetch('/api/admin/stores');
+        const stores = await res.json();
+        const sel = document.getElementById('editStoreCode');
+        sel.innerHTML = '<option value="">请选择门店</option>';
+        stores.forEach(s => { sel.innerHTML += `<option value="${s.store_code}">${s.store_code} - ${s.store_name}</option>`; });
+      } catch (e) { /* ignore */ }
+    }
+    loadStoreOptions();
+
+    // 加载商品复选框
+    async function loadProductCheckboxes() {
+      try {
+        const res = await fetch('/api/admin/products');
+        const products = await res.json();
+        const active = products.filter(p => p.status === 1);
+        const container = document.getElementById('editProductCheckboxes');
+        container.innerHTML = active.length === 0 ? '<span class="text-muted small">暂无启用商品</span>' :
+          active.map(p => `
+            <div class="form-check">
+              <input class="form-check-input product-check" type="checkbox" value="${p.id}" id="prod_${p.id}">
+              <label class="form-check-label small" for="prod_${p.id}">${p.product_name} (${p.product_code})</label>
+            </div>`).join('');
+      } catch (e) { /* ignore */ }
+    }
+    loadProductCheckboxes();
+
+    // 加载人员列表
+    async function loadUsers() {
+      const params = new URLSearchParams();
+      const sc = document.getElementById('filterStoreCode').value.trim();
+      const name = document.getElementById('filterName').value.trim();
+      const phone = document.getElementById('filterPhone').value.trim();
+      const status = document.getElementById('filterStatus').value;
+      if (sc) params.set('store_code', sc);
+      if (name) params.set('name', name);
+      if (phone) params.set('phone', phone);
+      if (status) params.set('status', status);
+
+      try {
+        const res = await fetch('/api/admin/users?' + params.toString());
+        const users = await res.json();
+        const tbody = document.getElementById('userTableBody');
+        if (!users.length) {
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">暂无数据</td></tr>';
+          return;
+        }
+        const statusMap = { active: '启用', pending: '待激活', disabled: '禁用' };
+        const statusBadge = { active: 'success', pending: 'warning', disabled: 'secondary' };
+        const roleMap = { admin: '管理员', clerk: '店员' };
+        tbody.innerHTML = users.map(u => `
+          <tr>
+            <td><input type="checkbox" class="user-checkbox" value="${u.id}" data-uid="${u.id}" onclick="onSelectUser(${u.id})"></td>
+            <td>${u.store_code}</td>
+            <td>${u.name}</td>
+            <td>${u.phone}</td>
+            <td>${roleMap[u.role] || u.role}</td>
+            <td><span class="badge bg-${statusBadge[u.status]}">${statusMap[u.status] || u.status}</span></td>
+            <td>
+              <button class="btn btn-outline-primary btn-sm" onclick="openEditModal(${u.id})" title="修改">
+                <i class="bi bi-pencil"></i>
+              </button>
+            </td>
+          </tr>`).join('');
+      } catch (err) {
+        document.getElementById('userTableBody').innerHTML =
+          '<tr><td colspan="7" class="text-center text-danger py-4">加载失败</td></tr>';
+      }
+    }
+
+    function toggleSelectAll() {
+      const checked = document.getElementById('selectAll').checked;
+      document.querySelectorAll('.user-checkbox').forEach(cb => cb.checked = checked);
+      selectedUserId = checked && document.querySelectorAll('.user-checkbox').length === 1
+        ? parseInt(document.querySelector('.user-checkbox').value) : null;
+    }
+
+    function onSelectUser(id) {
+      document.getElementById('selectAll').checked = false;
+      selectedUserId = id;
+      // 取消其他复选框
+      document.querySelectorAll('.user-checkbox').forEach(cb => {
+        if (parseInt(cb.value) !== id) cb.checked = false;
+      });
+    }
+
+    function openAddModal() {
+      document.getElementById('userModalTitle').textContent = '新增人员';
+      document.getElementById('editUserId').value = '';
+      document.getElementById('editPhone').value = '';
+      document.getElementById('editName').value = '';
+      document.getElementById('editGender').value = '';
+      document.getElementById('editRole').value = 'clerk';
+      document.getElementById('editStatus').value = 'pending';
+      document.getElementById('editStoreCode').value = '';
+      document.querySelectorAll('.product-check').forEach(cb => cb.checked = false);
+      document.getElementById('resetPwdGroup').style.display = 'none';
+      document.getElementById('modalMsg').innerHTML = '';
+      document.getElementById('saveUserBtn').textContent = '保存';
+      // 新增时显示商品多选
+      document.getElementById('productFieldGroup').style.display = '';
+      userModal.show();
+    }
+
+    async function openEditModal(id) {
+      try {
+        const res = await fetch('/api/admin/users/' + id);
+        const u = await res.json();
+        document.getElementById('userModalTitle').textContent = '修改人员信息';
+        document.getElementById('editUserId').value = u.id;
+        document.getElementById('editPhone').value = u.phone;
+        document.getElementById('editPhone').disabled = true; // 手机号不可修改
+        document.getElementById('editName').value = u.name;
+        document.getElementById('editGender').value = u.gender || '';
+        document.getElementById('editRole').value = u.role;
+        document.getElementById('editStatus').value = u.status;
+        document.getElementById('editStoreCode').value = u.store_code;
+        // 勾选已有商品
+        document.querySelectorAll('.product-check').forEach(cb => {
+          cb.checked = (u.product_ids || []).includes(parseInt(cb.value));
+        });
+        document.getElementById('resetPassword').checked = false;
+        document.getElementById('resetPwdGroup').style.display = '';
+        document.getElementById('modalMsg').innerHTML = '';
+        document.getElementById('saveUserBtn').textContent = '保存修改';
+        // 店员显示商品多选
+        document.getElementById('productFieldGroup').style.display = u.role === 'clerk' ? '' : 'none';
+        // 角色切换时联动
+        document.getElementById('editRole').onchange = function() {
+          document.getElementById('productFieldGroup').style.display = this.value === 'clerk' ? '' : 'none';
+        };
+        userModal.show();
+      } catch (err) {
+        alert('加载人员信息失败');
+      }
+    }
+
+    async function saveUser() {
+      const id = document.getElementById('editUserId').value;
+      const phone = document.getElementById('editPhone').value.trim();
+      const name = document.getElementById('editName').value.trim();
+      const gender = document.getElementById('editGender').value;
+      const role = document.getElementById('editRole').value;
+      const storeCode = document.getElementById('editStoreCode').value;
+      const status = document.getElementById('editStatus').value;
+      const resetPwd = document.getElementById('resetPassword').checked;
+      const productIds = Array.from(document.querySelectorAll('.product-check:checked')).map(cb => parseInt(cb.value));
+      const msgEl = document.getElementById('modalMsg');
+
+      if (!phone && !id) { msgEl.innerHTML = '<div class="alert alert-warning">手机号必填</div>'; return; }
+      if (!name) { msgEl.innerHTML = '<div class="alert alert-warning">姓名必填</div>'; return; }
+
+      const body = { name, gender, role, store_code: storeCode, status };
+      if (!id) body.phone = phone;
+      if (resetPwd) body.reset_password = true;
+      if (role === 'clerk') body.product_ids = productIds;
+      else body.product_ids = [];
+
+      try {
+        const url = id ? '/api/admin/users/' + id : '/api/admin/users';
+        const method = id ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (data.success) {
+          userModal.hide();
+          loadUsers();
+        } else {
+          msgEl.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+        }
+      } catch (err) {
+        msgEl.innerHTML = '<div class="alert alert-danger">操作失败</div>';
+      }
+    }
+
+    // 初始加载
+    loadUsers();
+  </script>
+</body>
+</html>

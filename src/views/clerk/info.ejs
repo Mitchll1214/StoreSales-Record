@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>信息管理 - 门店销售统计系统</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <%- include('../partials/header', { user }) %>
+
+  <div class="layout-container">
+    <div class="sidebar">
+      <div class="sidebar-title text-muted small px-3 py-2">店员功能</div>
+      <%- include('../partials/sidebar-clerk', { currentPage }) %>
+    </div>
+
+    <div class="main-content">
+      <h4 class="mb-4"><i class="bi bi-person-badge me-2"></i><%= title %></h4>
+
+      <div class="card shadow-sm">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">个人信息</h5>
+        </div>
+        <div class="card-body" id="infoContent">
+          <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    async function loadInfo() {
+      try {
+        const res = await fetch('/api/clerk/info');
+        const data = await res.json();
+
+        document.getElementById('infoContent').innerHTML = `
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label text-muted small">手机号</label>
+              <input type="text" class="form-control" value="${data.phone}" readonly disabled>
+              <div class="form-text">手机号不可修改</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-muted small">门店编码</label>
+              <input type="text" class="form-control" value="${data.store_code}" readonly disabled>
+              <div class="form-text">门店编码不可修改</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-muted small">姓名</label>
+              <input type="text" class="form-control" value="${data.name}" readonly disabled>
+              <div class="form-text">姓名不可修改</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label text-muted small">性别</label>
+              <input type="text" class="form-control" value="${data.gender || '未设置'}" readonly disabled>
+              <div class="form-text">性别不可修改</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">收款银行卡号 <span class="text-muted small">（可修改）</span></label>
+              <input type="text" class="form-control" id="bankCard" value="${data.bank_card || ''}" placeholder="请输入银行卡号">
+            </div>
+            <div class="col-12 mt-3">
+              <button class="btn btn-primary" onclick="updateInfo()">
+                <i class="bi bi-check-lg"></i> 保存修改
+              </button>
+              <span id="saveMsg" class="ms-3"></span>
+            </div>
+          </div>`;
+      } catch (err) {
+        document.getElementById('infoContent').innerHTML =
+          '<div class="alert alert-danger">加载个人信息失败</div>';
+      }
+    }
+
+    async function updateInfo() {
+      const bankCard = document.getElementById('bankCard').value.trim();
+      const msgEl = document.getElementById('saveMsg');
+      try {
+        const res = await fetch('/api/clerk/info', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bank_card: bankCard }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          msgEl.innerHTML = '<span class="text-success"><i class="bi bi-check-circle"></i> 保存成功</span>';
+        } else {
+          msgEl.innerHTML = `<span class="text-danger">${data.error}</span>`;
+        }
+      } catch (err) {
+        msgEl.innerHTML = '<span class="text-danger">保存失败</span>';
+      }
+    }
+
+    loadInfo();
+  </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+<!-- 店员侧边栏菜单 -->
+<div class="list-group list-group-flush">
+  <a href="/clerk/info" class="list-group-item list-group-item-action <%= currentPage === 'info' ? 'active' : '' %>">
+    <i class="bi bi-person-badge me-2"></i> 信息管理
+  </a>
+  <a href="/clerk/sales-entry" class="list-group-item list-group-item-action <%= currentPage === 'sales-entry' ? 'active' : '' %>">
+    <i class="bi bi-cart-plus me-2"></i> 销售录入
+  </a>
+  <a href="/clerk/sales-query" class="list-group-item list-group-item-action <%= currentPage === 'sales-query' ? 'active' : '' %>">
+    <i class="bi bi-search me-2"></i> 销售数据查询
+  </a>
+</div>

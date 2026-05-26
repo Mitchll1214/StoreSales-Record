@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>商品管理 - 门店销售统计系统</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <%- include('../partials/header', { user }) %>
+
+  <div class="layout-container">
+    <div class="sidebar">
+      <div class="sidebar-title text-muted small px-3 py-2">管理员功能</div>
+      <%- include('../partials/sidebar-admin', { currentPage }) %>
+    </div>
+
+    <div class="main-content">
+      <h4 class="mb-4"><i class="bi bi-box-seam me-2"></i><%= title %></h4>
+
+      <div class="card shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">商品列表</h5>
+          <button class="btn btn-success btn-sm" onclick="openAddModal()">
+            <i class="bi bi-plus-lg"></i> 新增商品
+          </button>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:40px"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                  <th>商品条码</th>
+                  <th>商品名称</th>
+                  <th>负责人</th>
+                  <th>状态</th>
+                  <th style="width:100px">操作</th>
+                </tr>
+              </thead>
+              <tbody id="productTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新增商品模态框 -->
+  <div class="modal fade" id="productModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">新增商品</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div id="modalMsg"></div>
+          <div class="mb-3">
+            <label class="form-label">商品条码 <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="editProductCode" placeholder="唯一值，必填">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">商品名称 <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="editProductName" placeholder="必填">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">负责人（文本）</label>
+            <input type="text" class="form-control" id="editPersonInCharge" placeholder="选填">
+          </div>
+          <div class="form-text">新增商品默认状态为"启用"</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-primary" onclick="saveProduct()">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 修改商品状态模态框 -->
+  <div class="modal fade" id="editProductModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">修改商品</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div id="editModalMsg"></div>
+          <input type="hidden" id="editProductId">
+          <div class="mb-3">
+            <label class="form-label">商品条码</label>
+            <input type="text" class="form-control" id="editProductCode2" readonly disabled>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">商品名称 <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="editProductName2">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">负责人</label>
+            <input type="text" class="form-control" id="editPersonInCharge2">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">状态</label>
+            <select class="form-select" id="editProductStatus">
+              <option value="1">启用</option>
+              <option value="0">禁用</option>
+            </select>
+            <div class="form-text text-warning">禁用后所有涉及关联的地方都不会再显示此商品</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-primary" onclick="updateProduct()">保存修改</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const addModal = new bootstrap.Modal(document.getElementById('productModal'));
+    const editModal = new bootstrap.Modal(document.getElementById('editProductModal'));
+    let selectedProductId = null;
+
+    async function loadProducts() {
+      try {
+        const res = await fetch('/api/admin/products');
+        const products = await res.json();
+        const tbody = document.getElementById('productTableBody');
+        if (!products.length) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">暂无商品数据</td></tr>';
+          return;
+        }
+        tbody.innerHTML = products.map(p => `
+          <tr>
+            <td><input type="checkbox" class="product-checkbox" value="${p.id}" onclick="onSelectProduct(${p.id})"></td>
+            <td><code>${p.product_code}</code></td>
+            <td>${p.product_name}</td>
+            <td>${p.person_in_charge || '-'}</td>
+            <td><span class="badge bg-${p.status === 1 ? 'success' : 'secondary'}">${p.status === 1 ? '启用' : '禁用'}</span></td>
+            <td>
+              <button class="btn btn-outline-primary btn-sm" onclick="openEditModal(${p.id})" title="修改">
+                <i class="bi bi-pencil"></i>
+              </button>
+            </td>
+          </tr>`).join('');
+      } catch (err) {
+        document.getElementById('productTableBody').innerHTML =
+          '<tr><td colspan="6" class="text-center text-danger py-4">加载失败</td></tr>';
+      }
+    }
+
+    function toggleSelectAll() {
+      const checked = document.getElementById('selectAll').checked;
+      document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = checked);
+      selectedProductId = null;
+    }
+
+    function onSelectProduct(id) {
+      document.getElementById('selectAll').checked = false;
+      selectedProductId = id;
+      document.querySelectorAll('.product-checkbox').forEach(cb => {
+        if (parseInt(cb.value) !== id) cb.checked = false;
+      });
+    }
+
+    function openAddModal() {
+      document.getElementById('editProductCode').value = '';
+      document.getElementById('editProductName').value = '';
+      document.getElementById('editPersonInCharge').value = '';
+      document.getElementById('modalMsg').innerHTML = '';
+      addModal.show();
+    }
+
+    async function saveProduct() {
+      const code = document.getElementById('editProductCode').value.trim();
+      const name = document.getElementById('editProductName').value.trim();
+      const charge = document.getElementById('editPersonInCharge').value.trim();
+      const msgEl = document.getElementById('modalMsg');
+
+      if (!code) { msgEl.innerHTML = '<div class="alert alert-warning">商品条码必填</div>'; return; }
+      if (!name) { msgEl.innerHTML = '<div class="alert alert-warning">商品名称必填</div>'; return; }
+
+      try {
+        const res = await fetch('/api/admin/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product_code: code, product_name: name, person_in_charge: charge }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          addModal.hide();
+          loadProducts();
+        } else {
+          msgEl.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+        }
+      } catch (err) {
+        msgEl.innerHTML = '<div class="alert alert-danger">保存失败</div>';
+      }
+    }
+
+    async function openEditModal(id) {
+      try {
+        // 从当前表格中获取数据
+        const products = await (await fetch('/api/admin/products')).json();
+        const p = products.find(pr => pr.id === id);
+        if (!p) return;
+        document.getElementById('editProductId').value = p.id;
+        document.getElementById('editProductCode2').value = p.product_code;
+        document.getElementById('editProductName2').value = p.product_name;
+        document.getElementById('editPersonInCharge2').value = p.person_in_charge || '';
+        document.getElementById('editProductStatus').value = String(p.status);
+        document.getElementById('editModalMsg').innerHTML = '';
+        editModal.show();
+      } catch (err) {
+        alert('加载失败');
+      }
+    }
+
+    async function updateProduct() {
+      const id = document.getElementById('editProductId').value;
+      const name = document.getElementById('editProductName2').value.trim();
+      const charge = document.getElementById('editPersonInCharge2').value.trim();
+      const status = parseInt(document.getElementById('editProductStatus').value);
+      const msgEl = document.getElementById('editModalMsg');
+
+      if (!name) { msgEl.innerHTML = '<div class="alert alert-warning">商品名称必填</div>'; return; }
+
+      try {
+        const res = await fetch('/api/admin/products/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product_name: name, person_in_charge: charge, status }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          editModal.hide();
+          loadProducts();
+        } else {
+          msgEl.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+        }
+      } catch (err) {
+        msgEl.innerHTML = '<div class="alert alert-danger">修改失败</div>';
+      }
+    }
+
+    loadProducts();
+  </script>
+</body>
+</html>

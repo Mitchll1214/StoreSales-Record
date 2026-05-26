@@ -1,0 +1,18 @@
+<!-- 公共头部 — 显示系统标题和当前用户信息 -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-bold" href="#">
+      <i class="bi bi-shop"></i> 门店销售统计系统
+    </a>
+    <div class="d-flex align-items-center text-white">
+      <span class="me-3">
+        <i class="bi bi-person-circle"></i> <%= user.name %>
+        <span class="badge bg-light text-dark ms-1"><%= user.role === 'admin' ? '管理员' : '店员' %></span>
+      </span>
+      <span class="me-3 small text-white-50"><%= user.phone %></span>
+      <a href="/logout" class="btn btn-outline-light btn-sm">
+        <i class="bi bi-box-arrow-right"></i> 退出
+      </a>
+    </div>
+  </div>
+</nav>

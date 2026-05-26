@@ -1,0 +1,256 @@
+<p align="center">
+  <h1 align="center">🏪 门店商品销售统计系统</h1>
+  <p align="center">多门店 · 多角色 · 销售录入与统计 · Docker 一键部署</p>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Node.js-20-green?logo=node.js" alt="Node.js">
+  <img src="https://img.shields.io/badge/Express-4.x-black?logo=express" alt="Express">
+  <img src="https://img.shields.io/badge/Bootstrap-5.3-purple?logo=bootstrap" alt="Bootstrap">
+  <img src="https://img.shields.io/badge/数据库-SQLite_|_MySQL-blue?logo=sqlite" alt="Database">
+  <img src="https://img.shields.io/badge/部署-Docker-blue?logo=docker" alt="Docker">
+  <img src="https://img.shields.io/badge/许可证-MIT-yellow" alt="License">
+</p>
+
+---
+
+## 📖 简介
+
+一套面向连锁门店的**商品销售数据管理系统**。店员通过 Web 端录入每日销售数据，管理员可进行人员/商品/门店管理和多维度销售统计分析。支持 Docker 一键部署，数据库默认使用 SQLite（零配置），也可切换 MySQL。
+
+### 核心特性
+
+- 🔐 **双角色权限** — 店员（录入+查询） / 管理员（管理+统计），JWT 认证
+- 📝 **销售录入** — 店员只能录入本人负责的商品，销售日期精确到小时
+- 📊 **销售统计** — 按日期、门店、商品维度汇总，支持明细下钻和 CSV 导出
+- 👥 **人员管理** — 管理员预添加人员→店员自主注册激活，密码重置
+- 🏬 **门店 & 商品管理** — 门店可关联在售商品，店员可关联负责商品
+- 🐳 **Docker 部署** — `docker compose up -d` 一键启动
+- 💾 **数据库可切换** — 默认本地 SQLite（零配置），设 `DB_HOST` 即切 MySQL
+
+---
+
+## 🚀 快速开始
+
+### 方式一：Docker 部署（推荐，默认 SQLite）
+
+```bash
+git clone https://github.com/<your-repo>/StoreSales-Record.git
+cd StoreSales-Record
+
+# 复制环境变量模板（可选，不配置则使用默认值）
+cp .env.example .env
+
+# 启动
+docker compose up -d
+
+# 访问
+open http://localhost:3000
+```
+
+### 方式二：Docker + MySQL 部署
+
+编辑 `.env`，填入 MySQL 连接信息并取消 `docker-compose.yml` 中 MySQL 服务的注释：
+
+```env
+DB_HOST=mysql        # docker-compose 内部服务名
+DB_PORT=3306
+DB_NAME=store_sales
+DB_USER=root
+DB_PASSWORD=你的密码
+JWT_SECRET=随机字符串
+PORT=3000
+```
+
+```bash
+docker compose up -d
+```
+
+### 方式三：本地开发
+
+```bash
+npm install
+cp .env.example .env    # 编辑 .env 按需配置
+
+# SQLite 模式（默认，零配置）
+npm run dev
+
+# MySQL 模式（在 .env 中设置 DB_HOST）
+DB_HOST=localhost npm run dev
+```
+
+### 默认账号
+
+| 角色 | 手机号 | 密码 | 首次登录后 |
+|------|--------|------|-----------|
+| 管理员 | `13800000000` | `88888888` | 请立即修改密码 |
+
+---
+
+## 👥 角色与功能
+
+### 店员（clerk）
+
+| 模块 | 功能 |
+|------|------|
+| 信息管理 | 查看个人资料，修改收款银行卡号 |
+| 销售录入 | 选择本人负责的商品，录入当日销售数量 |
+| 销售查询 | 按商品/日期查询本门店全部销售记录（分页） |
+
+### 管理员（admin）
+
+| 模块 | 功能 |
+|------|------|
+| 人员管理 | 新增/修改人员，分配门店和负责商品，重置密码 |
+| 商品管理 | 新增商品，管理启用/禁用状态 |
+| 门店管理 | 新增/修改门店信息，关联在售商品 |
+| 销售统计报表 | 按日期汇总各门店商品销量，查看明细，导出 CSV |
+| 销售统计明细表 | 按起止日期/商品/门店查询原始记录，支持删除和导出 |
+
+---
+
+## 🔄 用户注册流程
+
+```
+管理员「新增人员」→ 账号状态 = 待激活
+         ↓
+店员打开注册页 → 输入手机号 + 设置密码
+         ↓
+校验：手机号存在 且 状态为"待激活"
+         ↓
+注册成功 → 状态自动变为"启用" → 可登录
+```
+
+---
+
+## 🗄️ 数据库表设计
+
+| 表名 | 说明 | 关键字段 |
+|------|------|----------|
+| `stores` | 门店信息表 | `store_code`(唯一), `store_name`, 联系人, 地址 |
+| `products` | 商品信息表 | `product_code`(唯一), `product_name`, 状态, 负责人 |
+| `users` | 用户表 | `phone`(唯一), `password`, `role`, `store_code`, 账号状态 |
+| `store_products` | 门店-商品关联 | `store_code` + `product_id` 联合唯一 |
+| `user_products` | 店员-商品关联 | `user_id` + `product_id` 联合唯一 |
+| `sales_records` | 销售记录表 | 门店, 商品, 数量, 销售日期(精确到小时), 销售人员 |
+
+> 所有字段均含中文注释，详见 `init.sql` 和 `src/models/*.js`。
+
+---
+
+## 🌐 API 概览
+
+### 认证
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `GET` | `/login` | 登录页面 |
+| `POST` | `/api/auth/login` | 登录（返回 JWT Cookie） |
+| `GET` | `/register` | 注册页面 |
+| `POST` | `/api/auth/register` | 店员注册激活 |
+| `GET` | `/logout` | 退出 |
+
+### 店员
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `GET` | `/clerk/info` | 个人信息页 |
+| `GET` | `/api/clerk/info` | 获取个人信息 |
+| `PUT` | `/api/clerk/info` | 修改银行卡号 |
+| `GET` | `/clerk/sales-entry` | 销售录入页 |
+| `POST` | `/api/clerk/sales` | 提交销售记录 |
+| `GET` | `/clerk/sales-query` | 销售查询页 |
+| `GET` | `/api/clerk/sales` | 查询记录（分页） |
+
+### 管理员
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `GET` | `/admin/users` | 人员管理页 |
+| `GET/POST` | `/api/admin/users` | 列表 / 新增 |
+| `GET/PUT` | `/api/admin/users/:id` | 详情 / 修改 |
+| `GET` | `/admin/products` | 商品管理页 |
+| `GET/POST` | `/api/admin/products` | 列表 / 新增 |
+| `PUT` | `/api/admin/products/:id` | 修改状态 |
+| `GET` | `/admin/stores` | 门店管理页 |
+| `GET/POST` | `/api/admin/stores` | 列表 / 新增 |
+| `GET/PUT` | `/api/admin/stores/:id` | 详情 / 修改 |
+| `GET/POST` | `/admin/reports` | 销售统计报表页 |
+| `GET` | `/api/admin/reports` | 统计数据 |
+| `GET` | `/api/admin/reports/detail` | 汇总明细下钻 |
+| `GET` | `/api/admin/reports/export` | 导出报表 CSV |
+| `GET` | `/admin/sales-detail` | 销售明细表页 |
+| `GET` | `/api/admin/sales-records` | 查询明细（分页） |
+| `DELETE` | `/api/admin/sales-records/:id` | 删除记录 |
+| `GET` | `/api/admin/sales-records/export` | 导出明细 CSV |
+
+---
+
+## ⚙️ 环境变量
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `DB_HOST` | *(空)* | 留空=SQLite；设置则连接 MySQL |
+| `DB_PORT` | `3306` | MySQL 端口（SQLite 忽略） |
+| `DB_NAME` | `store_sales` | 数据库名 |
+| `DB_USER` | `root` | MySQL 用户名 |
+| `DB_PASSWORD` | — | MySQL 密码 |
+| `DB_DIALECT` | *(自动)* | 手动指定 `sqlite` 或 `mysql` |
+| `JWT_SECRET` | — | **生产环境务必修改** |
+| `PORT` | `3000` | 服务端口 |
+
+> **数据库选择逻辑**：检测到 `DB_HOST` 环境变量 → MySQL；否则 → SQLite（数据文件 `data/store_sales.sqlite`）。
+
+---
+
+## 📁 项目结构
+
+```
+StoreSales-Record/
+├── Dockerfile
+├── docker-compose.yml
+├── .env.example
+├── init.sql                     # MySQL 建表脚本
+├── package.json
+└── src/
+    ├── app.js                   # Express 入口
+    ├── config/
+    │   └── database.js          # 数据库连接（自动 SQLite / MySQL）
+    ├── middleware/
+    │   └── auth.js              # JWT 认证 + 角色鉴权
+    ├── models/                  # Sequelize 模型（6 张表，均含中文注释）
+    │   ├── index.js             # 关联 & 自动建表
+    │   ├── Store.js             # 门店
+    │   ├── Product.js           # 商品
+    │   ├── User.js              # 用户
+    │   ├── StoreProduct.js      # 门店-商品
+    │   ├── UserProduct.js       # 店员-商品
+    │   └── SalesRecord.js       # 销售记录
+    ├── routes/
+    │   ├── auth.js              # 登录/注册
+    │   ├── clerk.js             # 店员功能
+    │   └── admin.js             # 管理员功能
+    ├── views/                   # EJS 模板（Bootstrap 5 美化）
+    │   ├── login.ejs
+    │   ├── register.ejs
+    │   ├── clerk/               # info / sales-entry / sales-query
+    │   ├── admin/               # users / products / stores / reports / sales-detail
+    │   └── partials/            # header / sidebar-admin / sidebar-clerk
+    └── public/
+        └── css/style.css
+```
+
+---
+
+## 🔒 安全建议
+
+1. **生产环境**修改 `.env` 中 `JWT_SECRET` 为高强度随机字符串
+2. 默认管理员密码 `88888888` 首次登录后请立即修改
+3. JWT Token 存储在 httpOnly Cookie，有效期 8 小时
+4. 所有密码使用 bcrypt 哈希存储
+
+---
+
+## 📄 许可证
+
+MIT License

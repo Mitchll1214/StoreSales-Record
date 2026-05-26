@@ -1,0 +1,18 @@
+<!-- 管理员侧边栏菜单 -->
+<div class="list-group list-group-flush">
+  <a href="/admin/users" class="list-group-item list-group-item-action <%= currentPage === 'users' ? 'active' : '' %>">
+    <i class="bi bi-people me-2"></i> 人员管理
+  </a>
+  <a href="/admin/products" class="list-group-item list-group-item-action <%= currentPage === 'products' ? 'active' : '' %>">
+    <i class="bi bi-box-seam me-2"></i> 商品管理
+  </a>
+  <a href="/admin/stores" class="list-group-item list-group-item-action <%= currentPage === 'stores' ? 'active' : '' %>">
+    <i class="bi bi-building me-2"></i> 门店管理
+  </a>
+  <a href="/admin/reports" class="list-group-item list-group-item-action <%= currentPage === 'reports' ? 'active' : '' %>">
+    <i class="bi bi-bar-chart-line me-2"></i> 销售统计报表
+  </a>
+  <a href="/admin/sales-detail" class="list-group-item list-group-item-action <%= currentPage === 'sales-detail' ? 'active' : '' %>">
+    <i class="bi bi-table me-2"></i> 销售统计明细表
+  </a>
+</div>
