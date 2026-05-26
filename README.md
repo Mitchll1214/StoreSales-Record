@@ -28,6 +28,17 @@
 - 🐳 **Docker 部署** — `docker compose up -d` 一键启动
 - 💾 **数据库可切换** — 默认本地 SQLite（零配置），设 `DB_HOST` 即切 MySQL
 
+<img width="1920" height="816" alt="image" src="https://github.com/user-attachments/assets/0e52923a-f779-4846-9572-4d5693bc93b7" />
+<img width="1920" height="663" alt="image" src="https://github.com/user-attachments/assets/1d474e72-885d-4528-8a40-6b88fe022976" />
+<img width="1911" height="750" alt="image" src="https://github.com/user-attachments/assets/52e30077-aee8-40a3-a74c-3102187e9424" />
+<img width="1917" height="780" alt="image" src="https://github.com/user-attachments/assets/125291c7-5776-4b2a-81d4-9b542578e885" />
+<img width="1917" height="777" alt="image" src="https://github.com/user-attachments/assets/14ea1f36-980b-4b09-b4c3-dccd7357ccf6" />
+<img width="1908" height="669" alt="image" src="https://github.com/user-attachments/assets/50bc27c5-4135-45e3-ab82-362ad843ed43" />
+<img width="1917" height="648" alt="image" src="https://github.com/user-attachments/assets/902d5a8c-e992-46f5-ba9b-0ceeec6a6ec4" />
+<img width="1920" height="750" alt="image" src="https://github.com/user-attachments/assets/925de375-cb14-4219-8b77-073ac7c796e2" />
+<img width="582" height="783" alt="image" src="https://github.com/user-attachments/assets/9364b9b2-c804-4031-a826-61320d65382c" />
+<img width="726" height="824" alt="image" src="https://github.com/user-attachments/assets/803b75b9-fe31-4eff-8ed2-4febed85de25" />
+
 ---
 
 ## 🚀 快速开始
