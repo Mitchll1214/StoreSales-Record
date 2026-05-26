@@ -39,7 +39,7 @@ router.post('/api/auth/login', async (req, res) => {
 
     const user = await User.findOne({ where: { phone } });
     if (!user) {
-      return res.status(400).json({ error: '手机号未注册' });
+      return res.status(400).json({ error: '手机号未注册，请联系管理员添加人员' });
     }
     if (user.status === 'pending') {
       return res.status(400).json({ error: '账号尚未激活，请先注册' });
@@ -50,7 +50,7 @@ router.post('/api/auth/login', async (req, res) => {
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
-      return res.status(400).json({ error: '密码错误' });
+      return res.status(400).json({ error: '密码错误，可联系管理员重置' });
     }
 
     // 签发JWT，有效期8小时
