@@ -108,7 +108,7 @@ router.post('/api/auth/register', async (req, res) => {
     user.status = 'active';
     await user.save();
 
-    res.json({ success: true, message: '注册成功，请登录' });
+    res.json({ success: true, message: '注册&激活成功，请登录' });
   } catch (err) {
     console.error('注册失败:', err);
     res.status(500).json({ error: '服务器错误' });
