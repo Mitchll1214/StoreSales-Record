@@ -46,7 +46,7 @@
 ### 方式一：Docker 部署（推荐，默认 SQLite）
 
 ```bash
-git clone https://github.com/<your-repo>/StoreSales-Record.git
+git clone https://github.com/Mitchll1214/StoreSales-Record.git
 cd StoreSales-Record
 
 # 复制环境变量模板（可选，不配置则使用默认值）
