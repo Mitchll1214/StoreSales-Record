@@ -16,7 +16,7 @@ router.get('/login', (req, res) => {
   if (token) {
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
-      return res.redirect(decoded.role === 'admin' ? '/admin/users' : '/clerk/info');
+      return res.redirect('/home');
     } catch (_) { /* token无效，继续显示登录页 */ }
   }
   res.render('login', { error: null });
@@ -39,7 +39,7 @@ router.post('/api/auth/login', async (req, res) => {
 
     const user = await User.findOne({ where: { phone } });
     if (!user) {
-      return res.status(400).json({ error: '手机号未注册，请联系管理员添加人员' });
+      return res.status(400).json({ error: '手机号未注册' });
     }
     if (user.status === 'pending') {
       return res.status(400).json({ error: '账号尚未激活，请先注册' });
@@ -50,7 +50,7 @@ router.post('/api/auth/login', async (req, res) => {
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
-      return res.status(400).json({ error: '密码错误，可联系管理员重置' });
+      return res.status(400).json({ error: '密码错误' });
     }
 
     // 签发JWT，有效期8小时
@@ -70,7 +70,7 @@ router.post('/api/auth/login', async (req, res) => {
     res.json({
       success: true,
       role: user.role,
-      redirect: user.role === 'admin' ? '/admin/users' : '/clerk/info',
+      redirect: '/home',
       name: user.name,
     });
   } catch (err) {
@@ -108,7 +108,7 @@ router.post('/api/auth/register', async (req, res) => {
     user.status = 'active';
     await user.save();
 
-    res.json({ success: true, message: '注册&激活成功，请登录' });
+    res.json({ success: true, message: '注册成功，请登录' });
   } catch (err) {
     console.error('注册失败:', err);
     res.status(500).json({ error: '服务器错误' });

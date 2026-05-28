@@ -8,6 +8,7 @@ const bcrypt = require('bcryptjs');
 
 const { syncDatabase, Store, User } = require('./models');
 const authRoutes = require('./routes/auth');
+const homeRoutes = require('./routes/home');
 const clerkRoutes = require('./routes/clerk');
 const adminRoutes = require('./routes/admin');
 
@@ -37,6 +38,9 @@ app.get('/', (req, res) => res.redirect('/login'));
 
 // 认证路由（登录、注册、登出）
 app.use('/', authRoutes);
+
+// 首页路由
+app.use('/', homeRoutes);
 
 // 店员路由（挂载在 / 下，路由内部自带 /clerk 前缀）
 app.use('/', clerkRoutes);

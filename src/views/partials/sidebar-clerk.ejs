@@ -1,5 +1,8 @@
 <!-- 店员侧边栏菜单 -->
 <div class="list-group list-group-flush">
+  <a href="/home" class="list-group-item list-group-item-action <%= currentPage === 'home' ? 'active' : '' %>">
+    <i class="bi bi-house-door me-2"></i> 首页
+  </a>
   <a href="/clerk/info" class="list-group-item list-group-item-action <%= currentPage === 'info' ? 'active' : '' %>">
     <i class="bi bi-person-badge me-2"></i> 信息管理
   </a>

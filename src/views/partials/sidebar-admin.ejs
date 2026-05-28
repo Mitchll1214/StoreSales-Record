@@ -1,5 +1,8 @@
 <!-- 管理员侧边栏菜单 -->
 <div class="list-group list-group-flush">
+  <a href="/home" class="list-group-item list-group-item-action <%= currentPage === 'home' ? 'active' : '' %>">
+    <i class="bi bi-house-door me-2"></i> 首页
+  </a>
   <a href="/admin/users" class="list-group-item list-group-item-action <%= currentPage === 'users' ? 'active' : '' %>">
     <i class="bi bi-people me-2"></i> 人员管理
   </a>
