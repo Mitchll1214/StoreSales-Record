@@ -149,6 +149,9 @@
               <button class="btn btn-outline-primary btn-sm" onclick="openEditModal(${s.id})" title="修改">
                 <i class="bi bi-pencil"></i>
               </button>
+              <button class="btn btn-outline-danger btn-sm" onclick="deleteStore(${s.id}, '${s.store_name}')" title="删除">
+                <i class="bi bi-trash"></i>
+              </button>
             </td>
           </tr>`).join('');
       } catch (err) {
@@ -237,6 +240,22 @@
         }
       } catch (err) {
         msgEl.innerHTML = '<div class="alert alert-danger">操作失败</div>';
+      }
+    }
+
+    // 删除门店
+    async function deleteStore(id, name) {
+      if (!confirm(`确定要删除门店「${name}」吗？\n\n此操作将同时清除该门店的在售商品关联和销售记录，该门店下的用户门店归属将被置空。不可恢复。`)) return;
+      try {
+        const res = await fetch('/api/admin/stores/' + id, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          loadStores();
+        } else {
+          alert(data.error || '删除失败');
+        }
+      } catch (err) {
+        alert('删除失败，请重试');
       }
     }
 

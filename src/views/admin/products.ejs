@@ -146,6 +146,9 @@
               <button class="btn btn-outline-primary btn-sm" onclick="openEditModal(${p.id})" title="修改">
                 <i class="bi bi-pencil"></i>
               </button>
+              <button class="btn btn-outline-danger btn-sm" onclick="deleteProduct(${p.id}, '${p.product_name}')" title="删除">
+                <i class="bi bi-trash"></i>
+              </button>
             </td>
           </tr>`).join('');
       } catch (err) {
@@ -245,6 +248,22 @@
         }
       } catch (err) {
         msgEl.innerHTML = '<div class="alert alert-danger">修改失败</div>';
+      }
+    }
+
+    // 删除商品
+    async function deleteProduct(id, name) {
+      if (!confirm(`确定要删除商品「${name}」吗？\n\n此操作将同时清除该商品的门店关联、店员关联和销售记录，不可恢复。`)) return;
+      try {
+        const res = await fetch('/api/admin/products/' + id, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          loadProducts();
+        } else {
+          alert(data.error || '删除失败');
+        }
+      } catch (err) {
+        alert('删除失败，请重试');
       }
     }
 

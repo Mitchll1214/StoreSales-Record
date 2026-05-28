@@ -155,6 +155,23 @@ router.get('/api/admin/users/:id', async (req, res) => {
   }
 });
 
+// 删除人员（同时清理关联的商品关系）
+router.delete('/api/admin/users/:id', async (req, res) => {
+  try {
+    const user = await User.findByPk(req.params.id);
+    if (!user) return res.status(404).json({ error: '用户不存在' });
+
+    // 清理该用户的商品负责关联
+    await UserProduct.destroy({ where: { user_id: user.id } });
+
+    await user.destroy();
+    res.json({ success: true, message: '删除成功' });
+  } catch (err) {
+    console.error('删除人员失败:', err);
+    res.status(500).json({ error: '删除失败' });
+  }
+});
+
 // ========== 商品管理 API ==========
 
 // 查询所有商品
@@ -207,6 +224,25 @@ router.put('/api/admin/products/:id', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '修改失败' });
+  }
+});
+
+// 删除商品（同时清理关联的门店/店员/销售记录）
+router.delete('/api/admin/products/:id', async (req, res) => {
+  try {
+    const product = await Product.findByPk(req.params.id);
+    if (!product) return res.status(404).json({ error: '商品不存在' });
+
+    // 清理关联数据
+    await StoreProduct.destroy({ where: { product_id: product.id } });
+    await UserProduct.destroy({ where: { product_id: product.id } });
+    await SalesRecord.destroy({ where: { product_id: product.id } });
+
+    await product.destroy();
+    res.json({ success: true, message: '删除成功' });
+  } catch (err) {
+    console.error('删除商品失败:', err);
+    res.status(500).json({ error: '删除失败' });
   }
 });
 
@@ -300,6 +336,28 @@ router.get('/api/admin/stores/:id', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '查询失败' });
+  }
+});
+
+// 删除门店（同时清理关联商品、用户、销售记录）
+router.delete('/api/admin/stores/:id', async (req, res) => {
+  try {
+    const store = await Store.findByPk(req.params.id);
+    if (!store) return res.status(404).json({ error: '门店不存在' });
+
+    const storeCode = store.store_code;
+
+    // 清理关联数据
+    await StoreProduct.destroy({ where: { store_code: storeCode } });
+    await SalesRecord.destroy({ where: { store_code: storeCode } });
+    // 将该门店下的用户门店编码置空
+    await User.update({ store_code: '' }, { where: { store_code: storeCode } });
+
+    await store.destroy();
+    res.json({ success: true, message: '删除成功' });
+  } catch (err) {
+    console.error('删除门店失败:', err);
+    res.status(500).json({ error: '删除失败' });
   }
 });
 
