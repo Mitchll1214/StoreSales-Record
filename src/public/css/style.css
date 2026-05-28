@@ -98,25 +98,64 @@
 /* 响应式：小屏幕侧边栏折叠 */
 @media (max-width: 768px) {
   .layout-container {
-    flex-direction: column;
+    position: relative;
   }
+
+  /* 侧边栏默认隐藏，从左侧滑出 */
   .sidebar {
-    width: 100%;
-    min-width: unset;
-    border-right: none;
-    border-bottom: 1px solid #dee2e6;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 260px;
+    min-width: 260px;
+    height: 100vh;
+    z-index: 1050;
+    background: #f8f9fa;
+    border-right: 1px solid #dee2e6;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.3);
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    overflow-y: auto;
+    padding-top: 60px;
   }
-  .sidebar .list-group {
-    display: flex;
-    flex-direction: row;
-    overflow-x: auto;
+
+  /* 展开状态 */
+  .sidebar.sidebar-show {
+    transform: translateX(0);
   }
+
   .sidebar .list-group-item {
-    white-space: nowrap;
-    border-bottom: none;
-    flex-shrink: 0;
+    padding: 14px 20px;
+    font-size: 15px;
   }
+
+  .sidebar .sidebar-title {
+    font-size: 12px;
+    padding: 8px 20px;
+  }
+
   .main-content {
-    padding: 16px;
+    padding: 12px;
+    width: 100%;
+  }
+
+  /* 表格横向滚动 */
+  .table-responsive {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 卡片全宽 */
+  .card {
+    border-radius: 8px;
+  }
+
+  /* 筛选栏优化 */
+  .card .row.g-3 > [class*="col-"] {
+    margin-bottom: 4px;
+  }
+
+  /* 导航栏字号缩小 */
+  .navbar-brand {
+    font-size: 16px;
   }
 }
