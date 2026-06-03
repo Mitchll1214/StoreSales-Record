@@ -76,7 +76,7 @@ router.get('/home', authRequired, async (req, res) => {
   }
 
   const greeting = getGreeting();
-  const now = new Date();
+  const now = getBeijingTime();
 
   res.render('home', {
     user: req.user,
@@ -89,9 +89,15 @@ router.get('/home', authRequired, async (req, res) => {
   });
 });
 
-// 根据当前时间返回问候语
+// 获取北京时间（解决 Docker 容器 UTC 时区问题）
+function getBeijingTime() {
+  const utc = new Date();
+  return new Date(utc.getTime() + 8 * 60 * 60 * 1000);
+}
+
+// 根据北京时间返回问候语
 function getGreeting() {
-  const hour = new Date().getHours();
+  const hour = getBeijingTime().getHours();
   if (hour < 6) return '夜深了';
   if (hour < 9) return '早上好';
   if (hour < 12) return '上午好';

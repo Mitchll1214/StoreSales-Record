@@ -82,6 +82,11 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    // 日期格式化：直接从 ISO 字符串截取，不经过时区转换
+    function fmtDate(isoStr) {
+      if (!isoStr) return '-';
+      return isoStr.replace('T', ' ').slice(0, 19);
+    }
     const pageSize = 10;
     let currentPage = 1;
 
@@ -132,11 +137,11 @@
           tbody.innerHTML = result.data.map(r => `
             <tr>
               <td>${r.store_code}</td>
-              <td>${new Date(r.sale_date).toLocaleString('zh-CN')}</td>
+              <td>${fmtDate(r.sale_date)}</td>
               <td>${r.sales_person_name}</td>
               <td>${r.product_name}</td>
               <td><span class="badge bg-primary">${r.quantity}</span></td>
-              <td>${new Date(r.recorded_at).toLocaleString('zh-CN')}</td>
+              <td>${fmtDate(r.recorded_at)}</td>
             </tr>
           `).join('');
         }

@@ -70,6 +70,7 @@
               <thead class="table-light">
                 <tr>
                   <th>门店编码</th>
+                  <th>商品条码</th>
                   <th>商品名称</th>
                   <th>销售数量</th>
                   <th>销售人员</th>
@@ -79,7 +80,7 @@
                 </tr>
               </thead>
               <tbody id="tableBody">
-                <tr><td colspan="7" class="text-center text-muted py-4">点击"查询"按钮加载数据</td></tr>
+                <tr><td colspan="8" class="text-center text-muted py-4">点击"查询"按钮加载数据</td></tr>
               </tbody>
             </table>
           </div>
@@ -93,6 +94,11 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    // 日期格式化：直接从 ISO 字符串截取，不经过时区转换
+    function fmtDate(isoStr) {
+      if (!isoStr) return '-';
+      return isoStr.replace('T', ' ').slice(0, 19);
+    }
     const pageSize = 10;
     let currentPage = 1;
 
@@ -153,7 +159,7 @@
 
         const tbody = document.getElementById('tableBody');
         if (!result.data || result.data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">暂无数据</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">暂无数据</td></tr>';
           renderPagination(0, 1);
           return;
         }
@@ -161,11 +167,12 @@
         tbody.innerHTML = result.data.map(r => `
           <tr>
             <td><code>${r.store_code}</code></td>
+            <td><code class="text-muted">${r.product_code || '-'}</code></td>
             <td>${r.product_name}</td>
             <td><span class="badge bg-primary">${r.quantity}</span></td>
             <td>${r.sales_person_name}</td>
-            <td>${new Date(r.sale_date).toLocaleString('zh-CN')}</td>
-            <td>${new Date(r.recorded_at).toLocaleString('zh-CN')}</td>
+            <td>${fmtDate(r.sale_date)}</td>
+            <td>${fmtDate(r.recorded_at)}</td>
             <td>
               <button class="btn btn-outline-danger btn-sm" title="删除"
                 onclick="deleteRecord(${r.id})">
@@ -178,7 +185,7 @@
         renderPagination(result.total_pages, currentPage);
       } catch (err) {
         document.getElementById('tableBody').innerHTML =
-          '<tr><td colspan="7" class="text-center text-danger py-4">加载失败</td></tr>';
+          '<tr><td colspan="8" class="text-center text-danger py-4">加载失败</td></tr>';
       }
     }
 

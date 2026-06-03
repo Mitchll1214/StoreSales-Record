@@ -361,26 +361,40 @@ router.delete('/api/admin/stores/:id', async (req, res) => {
   }
 });
 
+// ========== 工具函数 ==========
+
+// 根据 product_id 批量查询商品条码，返回 { product_id: product_code } 映射
+async function getProductCodeMap(productIds) {
+  if (!productIds || productIds.length === 0) return {};
+  const ids = [...new Set(productIds)];
+  const products = await Product.findAll({
+    where: { id: ids },
+    attributes: ['id', 'product_code'],
+    raw: true,
+  });
+  const map = {};
+  products.forEach(p => { map[p.id] = p.product_code; });
+  return map;
+}
+
 // ========== 销售统计报表 API ==========
 
-// 统计：每款商品在每个门店中的销售合计数
+// 统计：每款商品在每个门店中的销售合计数（支持日期范围）
 router.get('/api/admin/reports', async (req, res) => {
   try {
-    const { date, store_code, product_ids } = req.query;
+    const { start_date, end_date, store_code, product_ids } = req.query;
 
-    // 日期筛选（精确到小时）
-    const targetDate = date ? new Date(date) : new Date();
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+
+    const start = start_date ? new Date(start_date + 'T00:00:00') : new Date(today + 'T00:00:00');
+    const end = end_date ? new Date(end_date + 'T23:59:59') : new Date(today + 'T23:59:59');
 
     const where = {
-      sale_date: { [Op.between]: [startOfDay, endOfDay] },
+      sale_date: { [Op.between]: [start, end] },
     };
     if (store_code) where.store_code = store_code;
 
-    // 多商品筛选
     if (product_ids) {
       const ids = Array.isArray(product_ids) ? product_ids : product_ids.split(',');
       where.product_id = { [Op.in]: ids.map(Number) };
@@ -400,41 +414,57 @@ router.get('/api/admin/reports', async (req, res) => {
       raw: true,
     });
 
-    res.json({ data: results, date: targetDate.toISOString().slice(0, 10) });
+    // 查询商品条码并合并到结果
+    const pids = results.map(r => r.product_id);
+    const codeMap = await getProductCodeMap(pids);
+    const enriched = results.map(r => ({
+      ...r,
+      product_code: codeMap[r.product_id] || '',
+    }));
+
+    res.json({
+      data: enriched,
+      start_date: start_date || today,
+      end_date: end_date || today,
+    });
   } catch (err) {
     console.error('报表查询失败:', err);
     res.status(500).json({ error: '查询失败' });
   }
 });
 
-// 统计明细：查看某条汇总记录下的所有销售明细
+// 统计明细：查看某条汇总记录下的所有销售明细（支持日期范围）
 router.get('/api/admin/reports/detail', async (req, res) => {
   try {
-    const { date, store_code, product_id } = req.query;
-    if (!date || !store_code || !product_id) {
+    const { start_date, end_date, store_code, product_id } = req.query;
+    if (!store_code || !product_id) {
       return res.status(400).json({ error: '参数不完整' });
     }
 
-    const targetDate = new Date(date);
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    const today = new Date().toISOString().slice(0, 10);
+    const start = start_date ? new Date(start_date + 'T00:00:00') : new Date(today + 'T00:00:00');
+    const end = end_date ? new Date(end_date + 'T23:59:59') : new Date(today + 'T23:59:59');
 
     const records = await SalesRecord.findAll({
       where: {
         store_code,
         product_id: parseInt(product_id, 10),
-        sale_date: { [Op.between]: [startOfDay, endOfDay] },
+        sale_date: { [Op.between]: [start, end] },
       },
       order: [['sale_date', 'ASC']],
     });
+
+    // 查询商品条码
+    const pids = records.map(r => r.product_id);
+    const codeMap = await getProductCodeMap(pids);
 
     const formatted = records.map(r => {
       const parts = r.sales_person.split('+');
       return {
         id: r.id,
         store_code: r.store_code,
+        product_id: r.product_id,
+        product_code: codeMap[r.product_id] || '',
         product_name: r.product_name,
         quantity: r.quantity,
         sale_date: r.sale_date,
@@ -451,19 +481,17 @@ router.get('/api/admin/reports/detail', async (req, res) => {
   }
 });
 
-// 导出报表为 CSV
+// 导出报表为 CSV（支持日期范围）
 router.get('/api/admin/reports/export', async (req, res) => {
   try {
-    const { date, store_code, product_ids } = req.query;
+    const { start_date, end_date, store_code, product_ids } = req.query;
 
-    const targetDate = date ? new Date(date) : new Date();
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    const today = new Date().toISOString().slice(0, 10);
+    const start = start_date ? new Date(start_date + 'T00:00:00') : new Date(today + 'T00:00:00');
+    const end = end_date ? new Date(end_date + 'T23:59:59') : new Date(today + 'T23:59:59');
 
     const where = {
-      sale_date: { [Op.between]: [startOfDay, endOfDay] },
+      sale_date: { [Op.between]: [start, end] },
     };
     if (store_code) where.store_code = store_code;
     if (product_ids) {
@@ -485,14 +513,18 @@ router.get('/api/admin/reports/export', async (req, res) => {
       raw: true,
     });
 
+    // 查询商品条码
+    const pids = results.map(r => r.product_id);
+    const codeMap = await getProductCodeMap(pids);
+
     // 生成 CSV（BOM 头确保 Excel 正确识别中文）
     const BOM = '\uFEFF';
-    let csv = BOM + '门店编码,商品名称,销售总数量,记录笔数\n';
+    let csv = BOM + '门店编码,商品条码,商品名称,销售总数量,记录笔数\n';
     for (const r of results) {
-      csv += `${r.store_code},${r.product_name},${r.total_quantity},${r.record_count}\n`;
+      csv += `${r.store_code},${codeMap[r.product_id] || ''},${r.product_name},${r.total_quantity},${r.record_count}\n`;
     }
 
-    const filename = `销售统计报表_${targetDate.toISOString().slice(0, 10)}.csv`;
+    const filename = `销售统计报表_${start_date || today}_${end_date || today}.csv`;
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
     res.send(csv);
@@ -533,12 +565,17 @@ router.get('/api/admin/sales-records', async (req, res) => {
       offset,
     });
 
+    // 查询商品条码
+    const pids = [...new Set(rows.map(r => r.product_id))];
+    const codeMap = await getProductCodeMap(pids);
+
     const formatted = rows.map(r => {
       const parts = r.sales_person.split('+');
       return {
         id: r.id,
         store_code: r.store_code,
         product_id: r.product_id,
+        product_code: codeMap[r.product_id] || '',
         product_name: r.product_name,
         quantity: r.quantity,
         sale_date: r.sale_date,
@@ -600,16 +637,21 @@ router.get('/api/admin/sales-records/export', async (req, res) => {
       order: [['sale_date', 'DESC']],
     });
 
+    // 查询商品条码
+    const pids = [...new Set(rows.map(r => r.product_id))];
+    const codeMap = await getProductCodeMap(pids);
+
     const BOM = '\uFEFF';
-    let csv = BOM + '门店编码,商品名称,销售数量,销售日期,登记时间,销售人员\n';
+    let csv = BOM + '门店编码,商品条码,商品名称,销售数量,销售日期,登记时间,销售人员\n';
     for (const r of rows) {
       const parts = r.sales_person.split('+');
       csv += [
         r.store_code,
+        codeMap[r.product_id] || '',
         r.product_name,
         r.quantity,
-        new Date(r.sale_date).toLocaleString('zh-CN'),
-        new Date(r.recorded_at).toLocaleString('zh-CN'),
+        new Date(r.sale_date).toISOString().replace('T', ' ').slice(0, 19),
+        new Date(r.recorded_at).toISOString().replace('T', ' ').slice(0, 19),
         parts[1] || r.sales_person,
       ].join(',') + '\n';
     }

@@ -6,6 +6,12 @@ const { authRequired, clerkRequired } = require('../middleware/auth');
 
 const router = express.Router();
 
+// 获取北京时间（Docker 容器内 UTC 时区修正）
+function beijingNow() {
+  const utc = new Date();
+  return new Date(utc.getTime() + 8 * 60 * 60 * 1000);
+}
+
 // 仅对 /clerk/* 和 /api/clerk/* 路径启用登录 + 店员角色校验
 router.use('/clerk', authRequired, clerkRequired);
 router.use('/api/clerk', authRequired, clerkRequired);
@@ -131,9 +137,9 @@ router.post('/api/clerk/sales', async (req, res) => {
       product_id: product.id,
       product_name: product.product_name,
       quantity: parseInt(quantity, 10),
-      sale_date: sale_date || new Date(),
+      sale_date: sale_date || beijingNow(),
       sales_person: `${req.user.phone}+${req.user.name}`,
-      recorded_at: new Date(),
+      recorded_at: beijingNow(),
     });
 
     res.json({ success: true, message: '销售记录提交成功', data: record });
