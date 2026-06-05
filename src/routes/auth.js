@@ -2,7 +2,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { User } = require('../models');
+const { User, OperationLog } = require('../models');
 const { JWT_SECRET } = require('../middleware/auth');
 
 const router = express.Router();
@@ -107,6 +107,19 @@ router.post('/api/auth/register', async (req, res) => {
     user.password = hashedPassword;
     user.status = 'active';
     await user.save();
+
+    // 记录操作日志
+    try {
+      const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+      const bjNow = new Date(new Date().getTime() + 8 * 60 * 60 * 1000);
+      await OperationLog.create({
+        user_phone: user.phone,
+        user_name: user.name,
+        action: '用户注册激活',
+        ip_address: ip,
+        created_at: bjNow,
+      });
+    } catch (_) { /* 日志失败不影响主流程 */ }
 
     res.json({ success: true, message: '注册成功，请登录' });
   } catch (err) {

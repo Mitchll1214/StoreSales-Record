@@ -59,6 +59,18 @@ const User = sequelize.define('User', {
     defaultValue: 'pending',
     comment: '账号状态：pending待激活 / active启用 / disabled禁用',
   },
+  // 收款人姓名
+  payee_name: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    comment: '收款人姓名（工资发放）',
+  },
+  // 收款银行
+  bank_name: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    comment: '收款银行',
+  },
 }, {
   tableName: 'users',
   comment: '用户表 — 存储系统用户（店员/管理员）信息',

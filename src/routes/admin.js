@@ -3,7 +3,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { Op, fn, col, literal } = require('sequelize');
 const {
-  User, Product, Store, StoreProduct, UserProduct, SalesRecord, sequelize,
+  User, Product, Store, StoreProduct, UserProduct, SalesRecord, OperationLog, sequelize,
 } = require('../models');
 const { authRequired, adminRequired } = require('../middleware/auth');
 
@@ -34,6 +34,31 @@ router.get('/admin/reports', (req, res) => {
 router.get('/admin/sales-detail', (req, res) => {
   res.render('admin/sales-detail', { user: req.user, currentPage: 'sales-detail', title: '销售统计明细表' });
 });
+
+router.get('/admin/operation-logs', (req, res) => {
+  res.render('admin/operation-logs', { user: req.user, currentPage: 'operation-logs', title: '操作日志' });
+});
+
+// ========== 操作日志工具 ==========
+
+// 获取北京时间
+function beijingNow() {
+  const utc = new Date();
+  return new Date(utc.getTime() + 8 * 60 * 60 * 1000);
+}
+
+async function logAction(req, action) {
+  try {
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+    await OperationLog.create({
+      user_phone: req.user.phone,
+      user_name: req.user.name,
+      action,
+      ip_address: ip,
+      created_at: beijingNow(),
+    });
+  } catch (_) { /* 日志记录失败不影响主流程 */ }
+}
 
 // ========== 人员管理 API ==========
 
@@ -92,6 +117,7 @@ router.post('/api/admin/users', async (req, res) => {
     }
 
     res.json({ success: true, message: '新增成功', data: user });
+    await logAction(req, `新增人员：${name} (${phone})`);
   } catch (err) {
     console.error('新增人员失败:', err);
     res.status(500).json({ error: '新增失败' });
@@ -128,9 +154,44 @@ router.put('/api/admin/users/:id', async (req, res) => {
     }
 
     res.json({ success: true, message: '修改成功' });
+    await logAction(req, `修改人员：${user.name} (${user.phone})`);
   } catch (err) {
     console.error('修改人员失败:', err);
     res.status(500).json({ error: '修改失败' });
+  }
+});
+
+// 导出人员列表 CSV（必须在 :id 路由之前，否则 "export" 会被当作 id）
+router.get('/api/admin/users/export', async (req, res) => {
+  try {
+    const { store_code, name, phone, status } = req.query;
+    const where = {};
+    if (store_code) where.store_code = store_code;
+    if (name) where.name = { [Op.like]: `%${name}%` };
+    if (phone) where.phone = { [Op.like]: `%${phone}%` };
+    if (status) where.status = status;
+
+    const users = await User.findAll({ where, order: [['created_at', 'DESC']] });
+
+    const BOM = '\uFEFF';
+    const statusMap = { active: '启用', pending: '待激活', disabled: '禁用' };
+    let csv = BOM + '门店编码,姓名,手机号,角色,在职状态,收款人,银行卡号,收款银行\n';
+    for (const u of users) {
+      csv += [
+        u.store_code, u.name, u.phone,
+        u.role === 'admin' ? '管理员' : '店员',
+        statusMap[u.status] || u.status,
+        u.payee_name || '', u.bank_card || '', u.bank_name || '',
+      ].join(',') + '\n';
+    }
+
+    const filename = encodeURIComponent('人员列表.csv');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${filename}`);
+    res.send(csv);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: '导出失败' });
   }
 });
 
@@ -164,8 +225,11 @@ router.delete('/api/admin/users/:id', async (req, res) => {
     // 清理该用户的商品负责关联
     await UserProduct.destroy({ where: { user_id: user.id } });
 
+    const userName = user.name;
+    const userPhone = user.phone;
     await user.destroy();
     res.json({ success: true, message: '删除成功' });
+    await logAction(req, `删除人员：${userName} (${userPhone})`);
   } catch (err) {
     console.error('删除人员失败:', err);
     res.status(500).json({ error: '删除失败' });
@@ -202,6 +266,7 @@ router.post('/api/admin/products', async (req, res) => {
       status: 1, // 默认启用
     });
     res.json({ success: true, message: '新增成功', data: product });
+    await logAction(req, `新增商品：${product_name} (${product_code})`);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '新增失败' });
@@ -221,6 +286,7 @@ router.put('/api/admin/products/:id', async (req, res) => {
     await product.save();
 
     res.json({ success: true, message: '修改成功' });
+    await logAction(req, `修改商品：${product.product_name} (${product.product_code})`);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '修改失败' });
@@ -238,8 +304,11 @@ router.delete('/api/admin/products/:id', async (req, res) => {
     await UserProduct.destroy({ where: { product_id: product.id } });
     await SalesRecord.destroy({ where: { product_id: product.id } });
 
+    const pn = product.product_name;
+    const pc = product.product_code;
     await product.destroy();
     res.json({ success: true, message: '删除成功' });
+    await logAction(req, `删除商品：${pn} (${pc})`);
   } catch (err) {
     console.error('删除商品失败:', err);
     res.status(500).json({ error: '删除失败' });
@@ -286,6 +355,7 @@ router.post('/api/admin/stores', async (req, res) => {
     }
 
     res.json({ success: true, message: '新增成功', data: store });
+    await logAction(req, `新增门店：${store_name} (${store_code})`);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '新增失败' });
@@ -317,6 +387,7 @@ router.put('/api/admin/stores/:id', async (req, res) => {
     }
 
     res.json({ success: true, message: '修改成功' });
+    await logAction(req, `修改门店：${store.store_name} (${store.store_code})`);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '修改失败' });
@@ -346,6 +417,7 @@ router.delete('/api/admin/stores/:id', async (req, res) => {
     if (!store) return res.status(404).json({ error: '门店不存在' });
 
     const storeCode = store.store_code;
+    const storeName = store.store_name;
 
     // 清理关联数据
     await StoreProduct.destroy({ where: { store_code: storeCode } });
@@ -355,6 +427,7 @@ router.delete('/api/admin/stores/:id', async (req, res) => {
 
     await store.destroy();
     res.json({ success: true, message: '删除成功' });
+    await logAction(req, `删除门店：${storeName} (${storeCode})`);
   } catch (err) {
     console.error('删除门店失败:', err);
     res.status(500).json({ error: '删除失败' });
@@ -524,9 +597,9 @@ router.get('/api/admin/reports/export', async (req, res) => {
       csv += `${r.store_code},${codeMap[r.product_id] || ''},${r.product_name},${r.total_quantity},${r.record_count}\n`;
     }
 
-    const filename = `销售统计报表_${start_date || today}_${end_date || today}.csv`;
+    const rfname = encodeURIComponent(`销售统计报表_${start_date || today}_${end_date || today}.csv`);
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${rfname}`);
     res.send(csv);
   } catch (err) {
     console.error('导出失败:', err);
@@ -603,8 +676,10 @@ router.delete('/api/admin/sales-records/:id', async (req, res) => {
   try {
     const record = await SalesRecord.findByPk(req.params.id);
     if (!record) return res.status(404).json({ error: '记录不存在' });
+    const info = `商品:${record.product_name} 数量:${record.quantity} 门店:${record.store_code}`;
     await record.destroy();
     res.json({ success: true, message: '删除成功' });
+    await logAction(req, `删除销售记录：${info}`);
   } catch (err) {
     console.error('删除失败:', err);
     res.status(500).json({ error: '删除失败' });
@@ -656,13 +731,62 @@ router.get('/api/admin/sales-records/export', async (req, res) => {
       ].join(',') + '\n';
     }
 
-    const filename = `销售明细_${new Date().toISOString().slice(0, 10)}.csv`;
+    const rfname = encodeURIComponent(`销售明细_${new Date().toISOString().slice(0, 10)}.csv`);
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${rfname}`);
     res.send(csv);
   } catch (err) {
     console.error('导出失败:', err);
     res.status(500).json({ error: '导出失败' });
+  }
+});
+
+// ========== 操作日志 API ==========
+
+router.get('/api/admin/operation-logs', async (req, res) => {
+  try {
+    const { user_phone, user_name, start_date, end_date, page = 1, page_size = 20 } = req.query;
+    const where = {};
+    if (user_phone) where.user_phone = { [Op.like]: `%${user_phone}%` };
+    if (user_name) where.user_name = { [Op.like]: `%${user_name}%` };
+    if (start_date || end_date) {
+      where.created_at = {};
+      if (start_date) where.created_at[Op.gte] = new Date(start_date + 'T00:00:00');
+      if (end_date) where.created_at[Op.lte] = new Date(end_date + 'T23:59:59');
+    }
+
+    const offset = (parseInt(page, 10) - 1) * parseInt(page_size, 10);
+    const { count, rows } = await OperationLog.findAndCountAll({
+      where,
+      order: [['created_at', 'DESC']],
+      limit: parseInt(page_size, 10),
+      offset,
+    });
+
+    res.json({
+      data: rows,
+      total: count,
+      page: parseInt(page, 10),
+      page_size: parseInt(page_size, 10),
+      total_pages: Math.ceil(count / parseInt(page_size, 10)),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: '查询失败' });
+  }
+});
+
+// 清空45天以前的操作日志
+router.delete('/api/admin/operation-logs', async (req, res) => {
+  try {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 45);
+    const result = await OperationLog.destroy({ where: { created_at: { [Op.lt]: cutoff } } });
+    await logAction(req, `清空操作日志：删除 ${result} 条 45 天前的记录`);
+    res.json({ success: true, message: `已清空 ${result} 条 45 天前的日志记录` });
+  } catch (err) {
+    console.error('清空日志失败:', err);
+    res.status(500).json({ error: '清空失败' });
   }
 });
 

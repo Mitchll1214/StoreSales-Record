@@ -99,6 +99,7 @@
         const data = await res.json();
         if (data.success) {
           msgBox.innerHTML = '<div class="alert alert-success"><i class="bi bi-check-circle"></i> 销售记录提交成功！</div>';
+          document.getElementById('productId').value = '';
           document.getElementById('quantity').value = '';
         } else {
           msgBox.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;

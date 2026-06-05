@@ -48,8 +48,11 @@
             <div class="col-md-2">
               <button class="btn btn-primary w-100" onclick="loadUsers()"><i class="bi bi-search"></i> 查询</button>
             </div>
-            <div class="col-md-2 text-end">
+            <div class="col-md-2">
               <button class="btn btn-success w-100" onclick="openAddModal()"><i class="bi bi-plus-lg"></i> 新增人员</button>
+            </div>
+            <div class="col-md-2">
+              <button class="btn btn-outline-success w-100" onclick="exportUsers()"><i class="bi bi-download"></i> 导出CSV</button>
             </div>
           </div>
         </div>
@@ -74,6 +77,22 @@
               <tbody id="userTableBody"></tbody>
             </table>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 查看人员详情模态框 -->
+  <div class="modal fade" id="viewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-eye me-2"></i>人员详情</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="viewModalBody"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
         </div>
       </div>
     </div>
@@ -214,6 +233,9 @@
             <td>${roleMap[u.role] || u.role}</td>
             <td><span class="badge bg-${statusBadge[u.status]}">${statusMap[u.status] || u.status}</span></td>
             <td>
+              <button class="btn btn-outline-info btn-sm" onclick="viewUser(${u.id})" title="查看">
+                <i class="bi bi-eye"></i>
+              </button>
               <button class="btn btn-outline-primary btn-sm" onclick="openEditModal(${u.id})" title="修改">
                 <i class="bi bi-pencil"></i>
               </button>
@@ -334,6 +356,43 @@
       } catch (err) {
         msgEl.innerHTML = '<div class="alert alert-danger">操作失败</div>';
       }
+    }
+
+    // 查看人员详情（弹窗展示，可点击复制）
+    async function viewUser(id) {
+      try {
+        const res = await fetch('/api/admin/users/' + id);
+        const u = await res.json();
+        const roleMap = { admin: '管理员', clerk: '店员' };
+        const statusMap = { active: '启用', pending: '待激活', disabled: '禁用' };
+        document.getElementById('viewModalBody').innerHTML = `
+          <div class="row g-3">
+            <div class="col-6"><label class="form-label small text-muted">姓名</label><input class="form-control" value="${u.name}" readonly onclick="this.select()"></div>
+            <div class="col-6"><label class="form-label small text-muted">手机号</label><input class="form-control" value="${u.phone}" readonly onclick="this.select()"></div>
+            <div class="col-6"><label class="form-label small text-muted">角色</label><input class="form-control" value="${roleMap[u.role]}" readonly></div>
+            <div class="col-6"><label class="form-label small text-muted">性别</label><input class="form-control" value="${u.gender || '-'}" readonly></div>
+            <div class="col-6"><label class="form-label small text-muted">门店编码</label><input class="form-control" value="${u.store_code}" readonly onclick="this.select()"></div>
+            <div class="col-6"><label class="form-label small text-muted">在职状态</label><input class="form-control" value="${statusMap[u.status]}" readonly></div>
+            <div class="col-4"><label class="form-label small text-muted">收款人</label><input class="form-control" value="${u.payee_name || '-'}" readonly onclick="this.select()"></div>
+            <div class="col-4"><label class="form-label small text-muted">银行卡号</label><input class="form-control" value="${u.bank_card || '-'}" readonly onclick="this.select()"></div>
+            <div class="col-4"><label class="form-label small text-muted">收款银行</label><input class="form-control" value="${u.bank_name || '-'}" readonly></div>
+          </div>`;
+        new bootstrap.Modal(document.getElementById('viewModal')).show();
+      } catch (e) { alert('加载失败'); }
+    }
+
+    // 导出CSV
+    function exportUsers() {
+      const params = new URLSearchParams();
+      const sc = document.getElementById('filterStoreCode').value.trim();
+      const name = document.getElementById('filterName').value.trim();
+      const phone = document.getElementById('filterPhone').value.trim();
+      const status = document.getElementById('filterStatus').value;
+      if (sc) params.set('store_code', sc);
+      if (name) params.set('name', name);
+      if (phone) params.set('phone', phone);
+      if (status) params.set('status', status);
+      window.open('/api/admin/users/export?' + params.toString(), '_blank');
     }
 
     // 删除人员

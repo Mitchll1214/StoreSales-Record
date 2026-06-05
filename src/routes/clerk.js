@@ -1,7 +1,7 @@
 // 店员功能路由 — 信息管理、销售录入、销售数据查询
 const express = require('express');
 const { Op } = require('sequelize');
-const { User, Product, SalesRecord, UserProduct, StoreProduct } = require('../models');
+const { User, Product, SalesRecord, UserProduct, StoreProduct, OperationLog } = require('../models');
 const { authRequired, clerkRequired } = require('../middleware/auth');
 
 const router = express.Router();
@@ -73,16 +73,31 @@ router.get('/api/clerk/info', (req, res) => {
     gender: req.user.gender,
     store_code: req.user.store_code,
     bank_card: req.user.bank_card || '',
+    payee_name: req.user.payee_name || '',
+    bank_name: req.user.bank_name || '',
   });
 });
 
-// 更新个人信息（仅银行卡号可修改）
+// 更新个人信息
 router.put('/api/clerk/info', async (req, res) => {
   try {
-    const { bank_card } = req.body;
-    req.user.bank_card = bank_card || null;
+    const { bank_card, payee_name, bank_name } = req.body;
+    if (bank_card !== undefined) req.user.bank_card = bank_card || null;
+    if (payee_name !== undefined) req.user.payee_name = payee_name || null;
+    if (bank_name !== undefined) req.user.bank_name = bank_name || null;
     await req.user.save();
     res.json({ success: true, message: '更新成功' });
+    // 记录操作日志
+    try {
+      const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+      await OperationLog.create({
+        user_phone: req.user.phone,
+        user_name: req.user.name,
+        action: '修改个人信息',
+        ip_address: ip,
+        created_at: beijingNow(),
+      });
+    } catch (_) { /* 日志失败不影响主流程 */ }
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '更新失败' });
@@ -143,6 +158,17 @@ router.post('/api/clerk/sales', async (req, res) => {
     });
 
     res.json({ success: true, message: '销售记录提交成功', data: record });
+    // 记录操作日志
+    try {
+      const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+      await OperationLog.create({
+        user_phone: req.user.phone,
+        user_name: req.user.name,
+        action: `提交销售：${product.product_name} x${quantity} (门店:${req.user.store_code})`,
+        ip_address: ip,
+        created_at: beijingNow(),
+      });
+    } catch (_) { /* 日志失败不影响主流程 */ }
   } catch (err) {
     console.error('提交销售记录失败:', err);
     res.status(500).json({ error: '提交失败' });

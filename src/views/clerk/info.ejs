@@ -66,6 +66,34 @@
               <label class="form-label">收款银行卡号 <span class="text-muted small">（可修改）</span></label>
               <input type="text" class="form-control" id="bankCard" value="${data.bank_card || ''}" placeholder="请输入银行卡号">
             </div>
+            <div class="col-md-6">
+              <label class="form-label">收款人姓名 <span class="text-muted small">（可修改）</span></label>
+              <input type="text" class="form-control" id="payeeName" value="${data.payee_name || ''}" placeholder="请输入收款人姓名">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">收款银行 <span class="text-muted small">（可修改）</span></label>
+              <select class="form-select" id="bankName">
+                <option value="">请选择银行</option>
+                <option value="中国工商银行">中国工商银行</option>
+                <option value="中国农业银行">中国农业银行</option>
+                <option value="中国银行">中国银行</option>
+                <option value="中国建设银行">中国建设银行</option>
+                <option value="交通银行">交通银行</option>
+                <option value="招商银行">招商银行</option>
+                <option value="中国邮政储蓄银行">中国邮政储蓄银行</option>
+                <option value="中信银行">中信银行</option>
+                <option value="中国光大银行">中国光大银行</option>
+                <option value="华夏银行">华夏银行</option>
+                <option value="中国民生银行">中国民生银行</option>
+                <option value="广发银行">广发银行</option>
+                <option value="兴业银行">兴业银行</option>
+                <option value="平安银行">平安银行</option>
+                <option value="浦发银行">浦发银行</option>
+                <option value="上海银行">上海银行</option>
+                <option value="北京银行">北京银行</option>
+                <option value="其他">其他</option>
+              </select>
+            </div>
             <div class="col-12 mt-3">
               <button class="btn btn-primary" onclick="updateInfo()">
                 <i class="bi bi-check-lg"></i> 保存修改
@@ -73,20 +101,36 @@
               <span id="saveMsg" class="ms-3"></span>
             </div>
           </div>`;
+        // 设置下拉框默认值（innerHTML 中的 script 不会执行）
+        document.getElementById('bankName').value = data.bank_name || '';
       } catch (err) {
         document.getElementById('infoContent').innerHTML =
           '<div class="alert alert-danger">加载个人信息失败</div>';
       }
     }
 
+    function isValidBankCard(card) {
+      if (!card) return true; // 允许为空
+      return /^\d{16,19}$/.test(card);
+    }
+
     async function updateInfo() {
-      const bankCard = document.getElementById('bankCard').value.trim();
+      const bankCard = document.getElementById('bankCard').value.trim().replace(/\s/g, '');
+      const payeeName = document.getElementById('payeeName').value.trim();
+      const bankName = document.getElementById('bankName').value;
       const msgEl = document.getElementById('saveMsg');
+
+      // 校验银行卡号
+      if (bankCard && !isValidBankCard(bankCard)) {
+        msgEl.innerHTML = '<span class="text-danger">银行卡号格式不正确（应为16-19位数字）</span>';
+        return;
+      }
+
       try {
         const res = await fetch('/api/clerk/info', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bank_card: bankCard }),
+          body: JSON.stringify({ bank_card: bankCard, payee_name: payeeName, bank_name: bankName }),
         });
         const data = await res.json();
         if (data.success) {
