@@ -8,6 +8,7 @@
   <img src="https://img.shields.io/badge/Express-4.x-black?logo=express" alt="Express">
   <img src="https://img.shields.io/badge/Bootstrap-5.3-purple?logo=bootstrap" alt="Bootstrap">
   <img src="https://img.shields.io/badge/数据库-SQLite_|_MySQL-blue?logo=sqlite" alt="Database">
+  <img src="https://img.shields.io/badge/架构-amd64_|_arm64-lightgrey?logo=arm" alt="Arch">
   <img src="https://img.shields.io/badge/部署-Docker-blue?logo=docker" alt="Docker">
   <img src="https://img.shields.io/badge/许可证-MIT-yellow" alt="License">
 </p>
@@ -43,13 +44,50 @@
 
 ## 🚀 快速开始
 
-### 方式一：Docker 部署（推荐，默认 SQLite）
+### 方式一：直接拉取镜像（最快，无需克隆源码）
+
+```bash
+# 创建项目目录
+mkdir store-sales && cd store-sales
+
+# 下载环境变量模板
+curl -O https://raw.githubusercontent.com/Mitchll1214/StoreSales-Record/main/.env.example
+mv .env.example .env
+
+# 创建 docker-compose.yml
+cat > docker-compose.yml << 'EOF'
+services:
+  app:
+    image: mitchll1214/storesales-record:latest
+    container_name: store_sales_app
+    restart: always
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}"
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-a-random-string}
+      PORT: ${PORT:-3000}
+    volumes:
+      - sqlite_data:/app/data
+volumes:
+  sqlite_data:
+EOF
+
+# 启动（镜像自动适配 AMD64 / ARM64 架构）
+docker compose up -d
+
+# 访问
+open http://localhost:3000
+```
+
+> 镜像 `mitchll1214/storesales-record` 支持 `linux/amd64` 和 `linux/arm64`，Docker 会自动选择匹配你机器的版本。
+
+### 方式二：克隆源码 + Docker Compose 构建
 
 ```bash
 git clone https://github.com/Mitchll1214/StoreSales-Record.git
 cd StoreSales-Record
 
-# 复制环境变量模板（可选，不配置则使用默认值）
+# 可选：复制环境变量模板
 cp .env.example .env
 
 # 启动
@@ -59,7 +97,7 @@ docker compose up -d
 open http://localhost:3000
 ```
 
-### 方式二：Docker + MySQL 部署
+### 方式三：Docker + MySQL（需克隆源码）
 
 编辑 `.env`，填入 MySQL 连接信息并取消 `docker-compose.yml` 中 MySQL 服务的注释：
 
@@ -77,7 +115,7 @@ PORT=3000
 docker compose up -d
 ```
 
-### 方式三：本地开发
+### 方式四：本地开发
 
 ```bash
 npm install
@@ -179,21 +217,25 @@ DB_HOST=localhost npm run dev
 |------|------|------|
 | `GET` | `/admin/users` | 人员管理页 |
 | `GET/POST` | `/api/admin/users` | 列表 / 新增 |
-| `GET/PUT` | `/api/admin/users/:id` | 详情 / 修改 |
+| `GET/PUT/DELETE` | `/api/admin/users/:id` | 详情 / 修改 / 删除 |
+| `GET` | `/api/admin/users/export` | 导出人员 CSV |
 | `GET` | `/admin/products` | 商品管理页 |
 | `GET/POST` | `/api/admin/products` | 列表 / 新增 |
-| `PUT` | `/api/admin/products/:id` | 修改状态 |
+| `PUT/DELETE` | `/api/admin/products/:id` | 修改 / 删除 |
 | `GET` | `/admin/stores` | 门店管理页 |
 | `GET/POST` | `/api/admin/stores` | 列表 / 新增 |
-| `GET/PUT` | `/api/admin/stores/:id` | 详情 / 修改 |
-| `GET/POST` | `/admin/reports` | 销售统计报表页 |
-| `GET` | `/api/admin/reports` | 统计数据 |
+| `GET/PUT/DELETE` | `/api/admin/stores/:id` | 详情 / 修改 / 删除 |
+| `GET` | `/admin/reports` | 销售统计报表页 |
+| `GET` | `/api/admin/reports` | 统计数据（支持日期范围） |
 | `GET` | `/api/admin/reports/detail` | 汇总明细下钻 |
 | `GET` | `/api/admin/reports/export` | 导出报表 CSV |
 | `GET` | `/admin/sales-detail` | 销售明细表页 |
 | `GET` | `/api/admin/sales-records` | 查询明细（分页） |
 | `DELETE` | `/api/admin/sales-records/:id` | 删除记录 |
 | `GET` | `/api/admin/sales-records/export` | 导出明细 CSV |
+| `GET` | `/admin/operation-logs` | 操作日志页 |
+| `GET` | `/api/admin/operation-logs` | 查询日志（分页+日期筛选） |
+| `DELETE` | `/api/admin/operation-logs` | 清空45天前日志 |
 
 ---
 
@@ -229,23 +271,26 @@ StoreSales-Record/
     │   └── database.js          # 数据库连接（自动 SQLite / MySQL）
     ├── middleware/
     │   └── auth.js              # JWT 认证 + 角色鉴权
-    ├── models/                  # Sequelize 模型（6 张表，均含中文注释）
-    │   ├── index.js             # 关联 & 自动建表
+    ├── models/                  # Sequelize 模型（7 张表，均含中文注释）
+    │   ├── index.js             # 关联 & 自动建表 + 迁移
     │   ├── Store.js             # 门店
     │   ├── Product.js           # 商品
     │   ├── User.js              # 用户
     │   ├── StoreProduct.js      # 门店-商品
     │   ├── UserProduct.js       # 店员-商品
-    │   └── SalesRecord.js       # 销售记录
+    │   ├── SalesRecord.js       # 销售记录
+    │   └── OperationLog.js      # 操作日志
     ├── routes/
     │   ├── auth.js              # 登录/注册
+    │   ├── home.js              # 首页（随机语录）
     │   ├── clerk.js             # 店员功能
     │   └── admin.js             # 管理员功能
     ├── views/                   # EJS 模板（Bootstrap 5 美化）
+    │   ├── home.ejs             # 首页
     │   ├── login.ejs
     │   ├── register.ejs
     │   ├── clerk/               # info / sales-entry / sales-query
-    │   ├── admin/               # users / products / stores / reports / sales-detail
+    │   ├── admin/               # users / products / stores / reports / sales-detail / operation-logs
     │   └── partials/            # header / sidebar-admin / sidebar-clerk
     └── public/
         └── css/style.css
