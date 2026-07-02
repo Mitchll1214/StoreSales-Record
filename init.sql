@@ -4,7 +4,7 @@
 -- ============================================
 
 -- 门店信息表：存储所有门店的基础信息
-CREATE TABLE IF NOT EXISTS `stores` (
+CREATE TABLE IF NOT EXISTS `ssr_stores` (
   `id` INT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `store_code` VARCHAR(50) NOT NULL COMMENT '门店编码（唯一值）',
   `store_name` VARCHAR(100) NOT NULL COMMENT '门店名称',
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS `stores` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='门店信息表 — 存储所有门店的基础信息';
 
 -- 商品信息表：存储所有可销售的商品信息
-CREATE TABLE IF NOT EXISTS `products` (
+CREATE TABLE IF NOT EXISTS `ssr_products` (
   `id` INT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `product_code` VARCHAR(50) NOT NULL COMMENT '商品条码（唯一值）',
   `product_name` VARCHAR(100) NOT NULL COMMENT '商品名称',
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS `products` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商品信息表 — 存储所有可销售的商品信息';
 
 -- 用户表：存储系统用户（店员/管理员）信息
-CREATE TABLE IF NOT EXISTS `users` (
+CREATE TABLE IF NOT EXISTS `ssr_users` (
   `id` INT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `phone` VARCHAR(20) NOT NULL COMMENT '手机号（登录账号）',
   `password` VARCHAR(255) NOT NULL COMMENT '密码（bcrypt哈希存储）',
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表 — 存储系统用户（店员/管理员）信息';
 
 -- 门店在售商品关联表：多对多关联门店与商品
-CREATE TABLE IF NOT EXISTS `store_products` (
+CREATE TABLE IF NOT EXISTS `ssr_store_products` (
   `id` INT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `store_code` VARCHAR(50) NOT NULL COMMENT '门店编码',
   `product_id` INT NOT NULL COMMENT '商品ID（关联products表）',
@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS `store_products` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='门店在售商品关联表 — 多对多关联门店与商品';
 
 -- 店员负责商品关联表：多对多关联店员与其负责的商品
-CREATE TABLE IF NOT EXISTS `user_products` (
+CREATE TABLE IF NOT EXISTS `ssr_user_products` (
   `id` INT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `user_id` INT NOT NULL COMMENT '用户ID（关联users表）',
   `product_id` INT NOT NULL COMMENT '商品ID（关联products表）',
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS `user_products` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='店员负责商品关联表 — 多对多关联店员与其负责的商品';
 
 -- 商品销售记录表：记录每笔商品销售明细
-CREATE TABLE IF NOT EXISTS `sales_records` (
+CREATE TABLE IF NOT EXISTS `ssr_sales_records` (
   `id` INT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `store_code` VARCHAR(50) NOT NULL COMMENT '销售门店编码',
   `product_id` INT NOT NULL COMMENT '销售商品ID',

@@ -20,10 +20,10 @@ const StoreProduct = sequelize.define('StoreProduct', {
   product_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    comment: '商品ID（关联products表）',
+    comment: '商品ID（关联ssr_products表）',
   },
 }, {
-  tableName: 'store_products',
+  tableName: 'ssr_store_products',
   comment: '门店在售商品关联表 — 多对多关联门店与商品',
   indexes: [
     { unique: true, fields: ['store_code', 'product_id'] },

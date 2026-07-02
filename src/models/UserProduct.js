@@ -14,16 +14,16 @@ const UserProduct = sequelize.define('UserProduct', {
   user_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    comment: '用户ID（关联users表）',
+    comment: '用户ID（关联ssr_users表）',
   },
   // 商品ID
   product_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    comment: '商品ID（关联products表）',
+    comment: '商品ID（关联ssr_products表）',
   },
 }, {
-  tableName: 'user_products',
+  tableName: 'ssr_user_products',
   comment: '店员负责商品关联表 — 多对多关联店员与其负责的商品',
   indexes: [
     { unique: true, fields: ['user_id', 'product_id'] },

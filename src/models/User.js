@@ -41,11 +41,11 @@ const User = sequelize.define('User', {
     allowNull: false,
     comment: '角色：clerk店员 / admin管理员',
   },
-  // 负责门店编码（关联stores表）
+  // 负责门店编码（关联ssr_stores表）
   store_code: {
     type: DataTypes.STRING(50),
     allowNull: false,
-    comment: '负责门店编码（关联stores表）',
+    comment: '负责门店编码（关联ssr_stores表）',
   },
   // 收款银行卡号（仅店员可修改）
   bank_card: {
@@ -72,7 +72,7 @@ const User = sequelize.define('User', {
     comment: '收款银行',
   },
 }, {
-  tableName: 'users',
+  tableName: 'ssr_users',
   comment: '用户表 — 存储系统用户（店员/管理员）信息',
 });
 

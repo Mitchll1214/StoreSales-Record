@@ -36,7 +36,7 @@ const Product = sequelize.define('Product', {
     comment: '负责人（文本）',
   },
 }, {
-  tableName: 'products',
+  tableName: 'ssr_products',
   comment: '商品信息表 — 存储所有可销售的商品信息',
 });
 

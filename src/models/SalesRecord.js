@@ -54,7 +54,7 @@ const SalesRecord = sequelize.define('SalesRecord', {
     comment: '销售人员（格式：手机号+人员姓名）',
   },
 }, {
-  tableName: 'sales_records',
+  tableName: 'ssr_sales_records',
   comment: '商品销售记录表 — 记录每笔商品销售明细',
 });
 

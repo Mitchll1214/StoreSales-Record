@@ -36,7 +36,7 @@ const OperationLog = sequelize.define('OperationLog', {
     comment: '操作时间',
   },
 }, {
-  tableName: 'operation_logs',
+  tableName: 'ssr_operation_logs',
   comment: '操作日志表 — 记录用户的关键操作',
   timestamps: false,
 });

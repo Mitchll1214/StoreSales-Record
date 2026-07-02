@@ -60,7 +60,7 @@ const Store = sequelize.define('Store', {
     comment: '状态：1启用 0禁用',
   },
 }, {
-  tableName: 'stores',
+  tableName: 'ssr_stores',
   comment: '门店信息表 — 存储所有门店的基础信息',
 });
 

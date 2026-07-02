@@ -59,24 +59,24 @@ async function migrateSchema() {
   let colNames = [];
 
   if (dialect === 'sqlite') {
-    const [userCols] = await sequelize.query("PRAGMA table_info('users')");
+    const [userCols] = await sequelize.query("PRAGMA table_info('ssr_users')");
     colNames = userCols.map(c => c.name);
   } else {
     // MySQL: 从 information_schema 查列信息
     const dbName = sequelize.config.database;
     const [userCols] = await sequelize.query(
-      `SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='${dbName}' AND TABLE_NAME='users'`
+      `SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='${dbName}' AND TABLE_NAME='ssr_users'`
     );
     colNames = userCols.map(c => c.COLUMN_NAME);
   }
 
   if (!colNames.includes('payee_name')) {
-    await sequelize.query(`ALTER TABLE users ADD COLUMN payee_name VARCHAR(50)`);
-    console.log('[DB] 已添加 users.payee_name 列');
+    await sequelize.query(`ALTER TABLE ssr_users ADD COLUMN payee_name VARCHAR(50)`);
+    console.log('[DB] 已添加 ssr_users.payee_name 列');
   }
   if (!colNames.includes('bank_name')) {
-    await sequelize.query(`ALTER TABLE users ADD COLUMN bank_name VARCHAR(50)`);
-    console.log('[DB] 已添加 users.bank_name 列');
+    await sequelize.query(`ALTER TABLE ssr_users ADD COLUMN bank_name VARCHAR(50)`);
+    console.log('[DB] 已添加 ssr_users.bank_name 列');
   }
 }
 
@@ -87,7 +87,7 @@ async function syncDatabase(maxRetries = 30, retryDelayMs = 2000) {
       await sequelize.authenticate();
       console.log('[DB] 数据库连接成功');
 
-      // 先建新表（operation_logs 等）
+      // 先建新表（ssr_operation_logs 等）
       await sequelize.sync({ alter: false });
 
       // 再手动迁移已有表的新列
