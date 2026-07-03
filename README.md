@@ -58,7 +58,7 @@ mv .env.example .env
 cat > docker-compose.yml << 'EOF'
 services:
   app:
-    image: mitchll1214/store-sales-record:latest
+    image: mitchll1214/storesales-record:latest
     container_name: store_sales_app
     restart: always
     ports:
@@ -97,12 +97,12 @@ docker compose up -d
 open http://localhost:3000
 ```
 
-### 方式三：Docker + MySQL（需克隆源码）
+### 方式三：Docker + 外部 MySQL
 
-编辑 `.env`，填入 MySQL 连接信息并取消 `docker-compose.yml` 中 MySQL 服务的注释：
+在 `.env` 中配置你的 MySQL 服务器连接信息：
 
 ```env
-DB_HOST=mysql        # docker-compose 内部服务名
+DB_HOST=your-mysql-host.com
 DB_PORT=3306
 DB_NAME=store_sales
 DB_USER=root
@@ -115,6 +115,8 @@ PORT=3000
 docker compose up -d
 ```
 
+> 注意：MySQL 服务器需提前创建好 `store_sales` 数据库，建表脚本见 `init.sql`。
+
 ### 方式四：本地开发
 
 ```bash
@@ -124,8 +126,8 @@ cp .env.example .env    # 编辑 .env 按需配置
 # SQLite 模式（默认，零配置）
 npm run dev
 
-# MySQL 模式（在 .env 中设置 DB_HOST）
-DB_HOST=localhost npm run dev
+# MySQL 模式（在 .env 中设置 DB_HOST 指向你的 MySQL 服务器）
+DB_HOST=your-mysql-host.com npm run dev
 ```
 
 ### 默认账号
@@ -176,12 +178,12 @@ DB_HOST=localhost npm run dev
 
 | 表名 | 说明 | 关键字段 |
 |------|------|----------|
-| `stores` | 门店信息表 | `store_code`(唯一), `store_name`, 联系人, 地址 |
-| `products` | 商品信息表 | `product_code`(唯一), `product_name`, 状态, 负责人 |
-| `users` | 用户表 | `phone`(唯一), `password`, `role`, `store_code`, 账号状态 |
-| `store_products` | 门店-商品关联 | `store_code` + `product_id` 联合唯一 |
-| `user_products` | 店员-商品关联 | `user_id` + `product_id` 联合唯一 |
-| `sales_records` | 销售记录表 | 门店, 商品, 数量, 销售日期(精确到小时), 销售人员 |
+| `ssr_stores` | 门店信息表 | `store_code`(唯一), `store_name`, 联系人, 地址 |
+| `ssr_products` | 商品信息表 | `product_code`(唯一), `product_name`, 状态, 负责人 |
+| `ssr_users` | 用户表 | `phone`(唯一), `password`, `role`, `store_code`, 账号状态 |
+| `ssr_store_products` | 门店-商品关联 | `store_code` + `product_id` 联合唯一 |
+| `ssr_user_products` | 店员-商品关联 | `user_id` + `product_id` 联合唯一 |
+| `ssr_sales_records` | 销售记录表 | 门店, 商品, 数量, 销售日期(精确到小时), 销售人员 |
 
 > 所有字段均含中文注释，详见 `init.sql` 和 `src/models/*.js`。
 
