@@ -58,7 +58,7 @@ mv .env.example .env
 cat > docker-compose.yml << 'EOF'
 services:
   app:
-    image: mitchll1214/storesales-record:latest
+    image: mitchll1214/store-sales-record:latest
     container_name: store_sales_app
     restart: always
     ports:
@@ -79,7 +79,7 @@ docker compose up -d
 open http://localhost:3000
 ```
 
-> 镜像 `mitchll1214/storesales-record` 支持 `linux/amd64` 和 `linux/arm64`，Docker 会自动选择匹配你机器的版本。
+> 镜像 `mitchll1214/store-sales-record` 支持 `linux/amd64` 和 `linux/arm64`，Docker 会自动选择匹配你机器的版本。
 
 ### 方式二：克隆源码 + Docker Compose 构建
 

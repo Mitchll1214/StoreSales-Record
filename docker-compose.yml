@@ -4,7 +4,8 @@ services:
   # ===== 应用服务（默认使用 SQLite，零依赖）=====
   app:
     build: .
-    container_name: store_sales_app
+    image: store-sales-record:latest
+    container_name: store-sales-record
     restart: always
     ports:
       - "${PORT:-3000}:${PORT:-3000}"
