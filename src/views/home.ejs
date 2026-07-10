@@ -85,6 +85,7 @@
     .bg-card-3 { background: linear-gradient(135deg, #4facfe, #00f2fe); }
     .bg-card-4 { background: linear-gradient(135deg, #fa709a, #fee140); }
     .bg-card-5 { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
+    .bg-card-6 { background: linear-gradient(135deg, #667eea, #764ba2); }
 
     @media (max-width: 768px) {
       .welcome-hero {
@@ -163,6 +164,12 @@
             </a>
           </div>
           <div class="col-6 col-md-4">
+            <a href="/admin/schedules" class="quick-card bg-card-6">
+              <div class="card-icon"><i class="bi bi-calendar-check"></i></div>
+              <div class="card-label">排班管理</div>
+            </a>
+          </div>
+          <div class="col-6 col-md-4">
             <a href="/admin/reports" class="quick-card bg-card-4">
               <div class="card-icon"><i class="bi bi-bar-chart-line"></i></div>
               <div class="card-label">销售统计报表</div>
@@ -191,6 +198,12 @@
             <a href="/clerk/sales-query" class="quick-card bg-card-3">
               <div class="card-icon"><i class="bi bi-search"></i></div>
               <div class="card-label">销售数据查询</div>
+            </a>
+          </div>
+          <div class="col-6 col-md-4">
+            <a href="/clerk/schedules" class="quick-card bg-card-6">
+              <div class="card-icon"><i class="bi bi-calendar-check"></i></div>
+              <div class="card-label">门店排班</div>
             </a>
           </div>
         <% } %>

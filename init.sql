@@ -99,3 +99,17 @@ CREATE TABLE IF NOT EXISTS `ssr_sales_records` (
 -- 由应用启动时通过 app.js 中的 seedDefaults() 动态创建
 -- 密码使用 bcryptjs 实时哈希，确保兼容性
 -- 默认账号: 13800000000 / 88888888
+
+-- 排班表：按日期+门店维度，为门店分配人员
+CREATE TABLE IF NOT EXISTS `ssr_schedules` (
+  `id` INT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `schedule_date` DATE NOT NULL COMMENT '排班日期',
+  `store_code` VARCHAR(50) NOT NULL COMMENT '门店编码（关联ssr_stores表）',
+  `user_id` INT NOT NULL COMMENT '人员ID（关联ssr_users表）',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `idx_schedule_unique` (`schedule_date`, `store_code`, `user_id`),
+  INDEX `idx_schedule_date_store` (`schedule_date`, `store_code`),
+  INDEX `idx_schedule_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='排班表 — 按日期+门店维度，为门店分配人员';

@@ -1,7 +1,7 @@
 // 店员功能路由 — 信息管理、销售录入、销售数据查询
 const express = require('express');
 const { Op } = require('sequelize');
-const { User, Product, SalesRecord, UserProduct, StoreProduct, OperationLog } = require('../models');
+const { User, Product, SalesRecord, UserProduct, StoreProduct, OperationLog, Schedule } = require('../models');
 const { authRequired, clerkRequired } = require('../middleware/auth');
 
 const router = express.Router();
@@ -60,6 +60,15 @@ router.get('/clerk/sales-query', (req, res) => {
     user: req.user,
     currentPage: 'sales-query',
     title: '销售数据查询',
+  });
+});
+
+// 排班查看页
+router.get('/clerk/schedules', async (req, res) => {
+  res.render('clerk/schedules', {
+    user: req.user,
+    currentPage: 'schedules',
+    title: '门店排班',
   });
 });
 
@@ -246,6 +255,47 @@ router.get('/api/clerk/store-products', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '获取失败' });
+  }
+});
+
+// 获取同门店的排班信息
+router.get('/api/clerk/schedules', async (req, res) => {
+  try {
+    const { start_date, end_date } = req.query;
+    const where = { store_code: req.user.store_code };
+
+    if (start_date && end_date) {
+      where.schedule_date = { [Op.between]: [start_date, end_date] };
+    } else if (start_date) {
+      where.schedule_date = { [Op.gte]: start_date };
+    } else {
+      // 默认查询本月
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+      where.schedule_date = { [Op.between]: [firstDay, lastDay] };
+    }
+
+    const schedules = await Schedule.findAll({
+      where,
+      order: [['schedule_date', 'ASC']],
+      include: [{ model: User, as: 'user', attributes: ['name', 'status'] }],
+    });
+
+    // 过滤：仅展示启用状态人员的排班
+    const data = schedules
+      .filter(s => s.user && s.user.status === 'active')
+      .map(s => ({
+        id: s.id,
+        schedule_date: s.schedule_date,
+        store_code: s.store_code,
+        user_name: s.user ? s.user.name : '',
+      }));
+
+    res.json({ data });
+  } catch (err) {
+    console.error('查询排班失败:', err);
+    res.status(500).json({ error: '查询失败' });
   }
 });
 

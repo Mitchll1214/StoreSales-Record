@@ -3,7 +3,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { Op, fn, col, literal } = require('sequelize');
 const {
-  User, Product, Store, StoreProduct, UserProduct, SalesRecord, OperationLog, sequelize,
+  User, Product, Store, StoreProduct, UserProduct, SalesRecord, OperationLog, Schedule, sequelize,
 } = require('../models');
 const { authRequired, adminRequired } = require('../middleware/auth');
 
@@ -37,6 +37,11 @@ router.get('/admin/sales-detail', (req, res) => {
 
 router.get('/admin/operation-logs', (req, res) => {
   res.render('admin/operation-logs', { user: req.user, currentPage: 'operation-logs', title: '操作日志' });
+});
+
+// 排班管理页面
+router.get('/admin/schedules', (req, res) => {
+  res.render('admin/schedules', { user: req.user, currentPage: 'schedules', title: '排班管理' });
 });
 
 // ========== 操作日志工具 ==========
@@ -787,6 +792,91 @@ router.delete('/api/admin/operation-logs', async (req, res) => {
   } catch (err) {
     console.error('清空日志失败:', err);
     res.status(500).json({ error: '清空失败' });
+  }
+});
+
+// ========== 排班管理 API ==========
+
+// 查询排班（按日期范围 + 门店，或按单日期 + 门店）
+router.get('/api/admin/schedules', async (req, res) => {
+  try {
+    const { date, start_date, end_date, store_code } = req.query;
+    if (!store_code) return res.status(400).json({ error: '请选择门店' });
+
+    const where = { store_code };
+
+    if (start_date && end_date) {
+      where.schedule_date = { [Op.between]: [start_date, end_date] };
+    } else if (date) {
+      where.schedule_date = date;
+    } else {
+      return res.status(400).json({ error: '请提供日期或日期范围' });
+    }
+
+    const schedules = await Schedule.findAll({
+      where,
+      include: [{ model: User, as: 'user', attributes: ['id', 'name'] }],
+      order: [['schedule_date', 'ASC']],
+    });
+
+    const data = schedules.map(s => ({
+      id: s.id,
+      schedule_date: s.schedule_date,
+      store_code: s.store_code,
+      user_id: s.user_id,
+      user_name: s.user ? s.user.name : '',
+    }));
+
+    res.json({ data });
+  } catch (err) {
+    console.error('查询排班失败:', err);
+    res.status(500).json({ error: '查询失败' });
+  }
+});
+
+// 批量保存排班（先删后建：删除该日期+门店下的所有排班，再批量创建）
+router.post('/api/admin/schedules', async (req, res) => {
+  try {
+    const { date, store_code, user_ids } = req.body;
+    if (!date) return res.status(400).json({ error: '请选择日期' });
+    if (!store_code) return res.status(400).json({ error: '请选择门店' });
+
+    // 删除该日期+门店下已有的排班
+    await Schedule.destroy({ where: { schedule_date: date, store_code } });
+
+    // 批量创建新的排班
+    if (user_ids && user_ids.length > 0) {
+      const records = user_ids.map(uid => ({
+        schedule_date: date,
+        store_code,
+        user_id: uid,
+      }));
+      await Schedule.bulkCreate(records);
+    }
+
+    res.json({ success: true, message: `已保存 ${user_ids ? user_ids.length : 0} 条排班记录` });
+    await logAction(req, `排班管理：${date} 门店${store_code} 排班 ${user_ids ? user_ids.length : 0} 人`);
+  } catch (err) {
+    console.error('保存排班失败:', err);
+    res.status(500).json({ error: '保存失败' });
+  }
+});
+
+// 获取门店下所有店员（含禁用，用于排班选择）
+router.get('/api/admin/schedules/users', async (req, res) => {
+  try {
+    const { store_code } = req.query;
+    if (!store_code) return res.status(400).json({ error: '请提供门店编码' });
+
+    const users = await User.findAll({
+      where: { store_code, role: 'clerk' },
+      attributes: ['id', 'name', 'status'],
+      order: [['name', 'ASC']],
+    });
+    res.json(users);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: '查询失败' });
   }
 });
 

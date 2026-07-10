@@ -7,6 +7,7 @@ const StoreProduct = require('./StoreProduct');
 const UserProduct = require('./UserProduct');
 const SalesRecord = require('./SalesRecord');
 const OperationLog = require('./OperationLog');
+const Schedule = require('./Schedule');
 
 // ========== 模型关联 ==========
 
@@ -52,6 +53,13 @@ SalesRecord.belongsTo(Store, { foreignKey: 'store_code', targetKey: 'store_code'
 
 // SalesRecord 关联 User（通过 sales_person 中的手机号）
 User.hasMany(SalesRecord, { foreignKey: 'store_code', sourceKey: 'store_code', constraints: false });
+
+User.hasMany(Schedule, { foreignKey: 'user_id', as: 'schedules' });
+Schedule.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
+// Schedule 关联 Store（通过 store_code）
+Store.hasMany(Schedule, { foreignKey: 'store_code', sourceKey: 'store_code', as: 'schedules' });
+Schedule.belongsTo(Store, { foreignKey: 'store_code', targetKey: 'store_code', as: 'store' });
 
 // 手动迁移：为已有表添加缺失的列
 async function migrateSchema() {
@@ -115,5 +123,6 @@ module.exports = {
   UserProduct,
   SalesRecord,
   OperationLog,
+  Schedule,
   syncDatabase,
 };
