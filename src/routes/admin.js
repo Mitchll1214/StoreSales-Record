@@ -353,14 +353,18 @@ router.post('/api/admin/stores', async (req, res) => {
       address: address || null,
     });
 
-    // 关联在售商品
-    if (product_ids && product_ids.length > 0) {
-      const records = product_ids.map(pid => ({ store_code: store.store_code, product_id: pid }));
-      await StoreProduct.bulkCreate(records);
+    // 关联在售商品（失败不影响门店创建）
+    try {
+      if (product_ids && product_ids.length > 0) {
+        const records = product_ids.map(pid => ({ store_code: store.store_code, product_id: pid }));
+        await StoreProduct.bulkCreate(records);
+      }
+    } catch (prodErr) {
+      console.error('关联门店商品失败:', prodErr.message);
     }
 
-    res.json({ success: true, message: '新增成功', data: store });
     await logAction(req, `新增门店：${store_name} (${store_code})`);
+    res.json({ success: true, message: '新增成功', data: store });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '新增失败' });
@@ -382,17 +386,21 @@ router.put('/api/admin/stores/:id', async (req, res) => {
     if (address !== undefined) store.address = address;
     await store.save();
 
-    // 更新在售商品关联
-    if (product_ids !== undefined) {
-      await StoreProduct.destroy({ where: { store_code: store.store_code } });
-      if (product_ids.length > 0) {
-        const records = product_ids.map(pid => ({ store_code: store.store_code, product_id: pid }));
-        await StoreProduct.bulkCreate(records);
+    // 更新在售商品关联（失败不影响门店修改）
+    try {
+      if (product_ids !== undefined) {
+        await StoreProduct.destroy({ where: { store_code: store.store_code } });
+        if (product_ids.length > 0) {
+          const records = product_ids.map(pid => ({ store_code: store.store_code, product_id: pid }));
+          await StoreProduct.bulkCreate(records);
+        }
       }
+    } catch (prodErr) {
+      console.error('更新门店商品关联失败:', prodErr.message);
     }
 
-    res.json({ success: true, message: '修改成功' });
     await logAction(req, `修改门店：${store.store_name} (${store.store_code})`);
+    res.json({ success: true, message: '修改成功' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '修改失败' });
