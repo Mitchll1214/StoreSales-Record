@@ -124,7 +124,7 @@
               <input class="form-check-input store-product-check" type="checkbox" value="${p.id}" id="sp_${p.id}">
               <label class="form-check-label small" for="sp_${p.id}">${p.product_name} (${p.product_code})</label>
             </div>`).join('');
-      } catch (e) { /* ignore */ }
+      } catch (e) { document.getElementById('editStoreProducts').innerHTML = '<span class="text-danger small">加载商品列表失败</span>'; }
     }
     loadStoreProducts();
 

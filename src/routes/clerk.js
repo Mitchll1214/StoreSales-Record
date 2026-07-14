@@ -36,9 +36,22 @@ router.get('/clerk/sales-entry', async (req, res) => {
       attributes: ['product_id'],
     });
     const productIds = userProducts.map(up => up.product_id);
-    const products = productIds.length > 0
+
+    // 门店在售商品限制：无关联=全部门店商品，有关联=仅限关联商品
+    let allowedIds = productIds;
+    const storeProducts = await StoreProduct.findAll({
+      where: { store_code: req.user.store_code },
+      attributes: ['product_id'],
+    });
+    if (storeProducts.length > 0) {
+      // 门店有限制：取店员负责 ∩ 门店在售
+      const storeIds = new Set(storeProducts.map(sp => sp.product_id));
+      allowedIds = productIds.filter(id => storeIds.has(id));
+    }
+
+    const products = allowedIds.length > 0
       ? await Product.findAll({
-          where: { id: productIds, status: 1 },
+          where: { id: allowedIds, status: 1 },
         })
       : [];
 
@@ -242,14 +255,26 @@ router.get('/api/clerk/sales', async (req, res) => {
   }
 });
 
-// 获取门店所有商品（用于筛选下拉）
+// 获取店员负责的商品（销售查询筛选用：门店无关联=全部，有关联=交集）
 router.get('/api/clerk/store-products', async (req, res) => {
   try {
-    const storeProducts = await StoreProduct.findAll({ where: { store_code: req.user.store_code } });
-    const productIds = storeProducts.map(sp => sp.product_id);
+    // 1. 获取店员负责的商品 ID
+    const userProducts = await UserProduct.findAll({ where: { user_id: req.user.id } });
+    const productIds = userProducts.map(up => up.product_id);
     if (productIds.length === 0) return res.json([]);
+
+    // 2. 门店在售商品限制：无关联=全部门店商品，有关联=仅限关联
+    const storeProducts = await StoreProduct.findAll({ where: { store_code: req.user.store_code } });
+    let validIds = productIds;
+    if (storeProducts.length > 0) {
+      const storeProductIds = new Set(storeProducts.map(sp => sp.product_id));
+      validIds = productIds.filter(id => storeProductIds.has(id));
+    }
+    if (validIds.length === 0) return res.json([]);
+
     const products = await Product.findAll({
-      where: { id: { [Op.in]: productIds }, status: 1 },
+      where: { id: { [Op.in]: validIds }, status: 1 },
+      order: [['product_name', 'ASC']],
     });
     res.json(products);
   } catch (err) {

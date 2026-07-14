@@ -25,6 +25,10 @@ Product.belongsToMany(Store, {
   as: 'stores',
 });
 
+// 显式指定 FK 引用目标：store_code → ssr_stores.store_code（而非默认的 id）
+StoreProduct.belongsTo(Store, { foreignKey: 'store_code', targetKey: 'store_code', constraints: false });
+StoreProduct.belongsTo(Product, { foreignKey: 'product_id', constraints: false });
+
 // User ↔ Product（店员负责商品，多对多通过 UserProduct）
 User.belongsToMany(Product, {
   through: UserProduct,

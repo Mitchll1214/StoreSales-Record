@@ -108,7 +108,7 @@
         products.forEach(p => {
           sel.innerHTML += `<option value="${p.id}">${p.product_name}</option>`;
         });
-      } catch (err) { /* 加载失败不影响主要功能 */ }
+      } catch (err) { document.getElementById('filterProduct').innerHTML = '<option value="" disabled>加载失败</option>'; }
     }
     loadProducts();
 

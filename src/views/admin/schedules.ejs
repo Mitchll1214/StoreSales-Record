@@ -94,6 +94,7 @@
         sel.addEventListener('change', onStoreChange);
       } catch (err) {
         console.error('加载门店失败:', err);
+        document.getElementById('storeSelect').innerHTML = '<option value="" disabled>加载失败，请刷新重试</option>';
       }
     }
 

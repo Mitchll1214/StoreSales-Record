@@ -181,7 +181,7 @@
         const sel = document.getElementById('editStoreCode');
         sel.innerHTML = '<option value="">请选择门店</option>';
         stores.forEach(s => { sel.innerHTML += `<option value="${s.store_code}">${s.store_code} - ${s.store_name}</option>`; });
-      } catch (e) { /* ignore */ }
+      } catch (e) { document.getElementById('editStoreCode').innerHTML = '<option value="" disabled>加载失败</option>'; }
     }
     loadStoreOptions();
 
@@ -198,7 +198,7 @@
               <input class="form-check-input product-check" type="checkbox" value="${p.id}" id="prod_${p.id}">
               <label class="form-check-label small" for="prod_${p.id}">${p.product_name} (${p.product_code})</label>
             </div>`).join('');
-      } catch (e) { /* ignore */ }
+      } catch (e) { document.getElementById('editProductCheckboxes').innerHTML = '<span class="text-danger small">加载失败</span>'; }
     }
     loadProductCheckboxes();
 

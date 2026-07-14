@@ -353,18 +353,29 @@ router.post('/api/admin/stores', async (req, res) => {
       address: address || null,
     });
 
-    // 关联在售商品（失败不影响门店创建）
-    try {
-      if (product_ids && product_ids.length > 0) {
-        const records = product_ids.map(pid => ({ store_code: store.store_code, product_id: pid }));
-        await StoreProduct.bulkCreate(records);
+    // 关联在售商品（逐条插入，兼容 MySQL / SQLite）
+    let productWarning = '';
+    if (product_ids && product_ids.length > 0) {
+      let ok = 0, fail = 0;
+      for (const pid of product_ids) {
+        try {
+          await StoreProduct.create({ store_code: store.store_code, product_id: pid });
+          ok++;
+        } catch (e) {
+          // 唯一约束冲突则跳过（已存在），其他错误记录
+          if (e.name === 'SequelizeUniqueConstraintError') {
+            ok++; // 已存在视为成功
+          } else {
+            console.error('关联门店商品失败 [pid=' + pid + ']:', e.parent?.message || e.message);
+            fail++;
+          }
+        }
       }
-    } catch (prodErr) {
-      console.error('关联门店商品失败:', prodErr.message);
+      if (fail > 0) productWarning = `，但 ${fail} 个商品关联失败`;
     }
 
     await logAction(req, `新增门店：${store_name} (${store_code})`);
-    res.json({ success: true, message: '新增成功', data: store });
+    res.json({ success: true, message: '新增成功' + productWarning, data: store });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '新增失败' });
@@ -386,21 +397,30 @@ router.put('/api/admin/stores/:id', async (req, res) => {
     if (address !== undefined) store.address = address;
     await store.save();
 
-    // 更新在售商品关联（失败不影响门店修改）
-    try {
-      if (product_ids !== undefined) {
+    // 更新在售商品关联（先清空再逐条插入，兼容 MySQL / SQLite）
+    let productWarning = '';
+    if (product_ids !== undefined) {
+      let ok = 0, fail = 0;
+      try {
         await StoreProduct.destroy({ where: { store_code: store.store_code } });
-        if (product_ids.length > 0) {
-          const records = product_ids.map(pid => ({ store_code: store.store_code, product_id: pid }));
-          await StoreProduct.bulkCreate(records);
+        for (const pid of product_ids) {
+          try {
+            await StoreProduct.create({ store_code: store.store_code, product_id: pid });
+            ok++;
+          } catch (e) {
+            console.error('更新门店商品关联失败 [pid=' + pid + ']:', e.parent?.message || e.message);
+            fail++;
+          }
         }
+      } catch (prodErr) {
+        console.error('更新门店商品关联失败:', prodErr);
+        productWarning = '，但商品关联更新失败';
       }
-    } catch (prodErr) {
-      console.error('更新门店商品关联失败:', prodErr.message);
+      if (fail > 0) productWarning = `，但 ${fail} 个商品关联失败`;
     }
 
     await logAction(req, `修改门店：${store.store_name} (${store.store_code})`);
-    res.json({ success: true, message: '修改成功' });
+    res.json({ success: true, message: '修改成功' + productWarning });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '修改失败' });

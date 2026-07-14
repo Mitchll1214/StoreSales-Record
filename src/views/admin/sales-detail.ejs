@@ -118,7 +118,7 @@
         const stores = await res.json();
         const sel = document.getElementById('filterStore');
         stores.forEach(s => { sel.innerHTML += `<option value="${s.store_code}">${s.store_code} - ${s.store_name}</option>`; });
-      } catch (e) { /* ignore */ }
+      } catch (e) { document.getElementById('filterStore').innerHTML += '<option disabled>加载失败</option>'; }
     }
     loadStoreFilter();
 
@@ -130,7 +130,7 @@
         const active = products.filter(p => p.status === 1);
         const sel = document.getElementById('filterProducts');
         sel.innerHTML = active.map(p => `<option value="${p.id}">${p.product_name} (${p.product_code})</option>`).join('');
-      } catch (e) { /* ignore */ }
+      } catch (e) { document.getElementById('filterProducts').innerHTML = '<option disabled>加载失败</option>'; }
     }
     loadProductFilter();
 

@@ -380,6 +380,7 @@ a:hover { color: var(--primary-hover); }
   letter-spacing: 0.01em;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   cursor: pointer;
   border: 1px solid transparent;
