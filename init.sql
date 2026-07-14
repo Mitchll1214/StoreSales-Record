@@ -113,3 +113,18 @@ CREATE TABLE IF NOT EXISTS `ssr_schedules` (
   INDEX `idx_schedule_date_store` (`schedule_date`, `store_code`),
   INDEX `idx_schedule_user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='排班表 — 按日期+门店维度，为门店分配人员';
+
+-- 库存上报表：门店+商品+日期为唯一维度，最后提交的库存数覆盖之前的
+CREATE TABLE IF NOT EXISTS `ssr_inventory_records` (
+  `id` INT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `store_code` VARCHAR(50) NOT NULL COMMENT '门店编码',
+  `product_id` INT NOT NULL COMMENT '商品ID',
+  `record_date` DATE NOT NULL COMMENT '记录日期',
+  `quantity` INT NOT NULL DEFAULT 0 COMMENT '库存数量',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `idx_inventory_unique` (`store_code`, `product_id`, `record_date`),
+  INDEX `idx_inventory_store_date` (`store_code`, `record_date`),
+  INDEX `idx_inventory_date` (`record_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='库存上报表 — 门店+商品+日期为唯一维度';

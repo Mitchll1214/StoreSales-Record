@@ -3,7 +3,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { Op, fn, col, literal } = require('sequelize');
 const {
-  User, Product, Store, StoreProduct, UserProduct, SalesRecord, OperationLog, Schedule, sequelize,
+  User, Product, Store, StoreProduct, UserProduct, SalesRecord, OperationLog, Schedule, InventoryRecord, sequelize,
 } = require('../models');
 const { authRequired, adminRequired } = require('../middleware/auth');
 
@@ -44,13 +44,15 @@ router.get('/admin/schedules', (req, res) => {
   res.render('admin/schedules', { user: req.user, currentPage: 'schedules', title: '排班管理' });
 });
 
+// 库存报表页面
+router.get('/admin/inventory', (req, res) => {
+  res.render('admin/inventory', { user: req.user, currentPage: 'inventory', title: '库存报表' });
+});
+
 // ========== 操作日志工具 ==========
 
 // 获取北京时间
-function beijingNow() {
-  const utc = new Date();
-  return new Date(utc.getTime() + 8 * 60 * 60 * 1000);
-}
+const beijingNow = () => new Date();
 
 async function logAction(req, action) {
   try {
@@ -905,6 +907,86 @@ router.get('/api/admin/schedules/users', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '查询失败' });
+  }
+});
+
+// ========== 库存报表 API ==========
+
+router.get('/api/admin/inventory', async (req, res) => {
+  try {
+    const { store_code, product_id, start_date, end_date } = req.query;
+    const where = {};
+    if (store_code) where.store_code = store_code;
+    if (product_id) where.product_id = parseInt(product_id, 10);
+    if (start_date || end_date) {
+      where.record_date = {};
+      if (start_date) where.record_date[Op.gte] = start_date;
+      if (end_date) where.record_date[Op.lte] = end_date;
+    } else {
+      where.record_date = new Date().toISOString().slice(0, 10);
+    }
+
+    const records = await InventoryRecord.findAll({
+      where,
+      include: [
+        { model: Product, as: 'product', attributes: ['product_name', 'product_code'] },
+        { model: Store, as: 'store', attributes: ['store_name'] },
+      ],
+      order: [['store_code', 'ASC'], ['record_date', 'DESC'], ['product_id', 'ASC']],
+    });
+
+    const data = records.map(r => ({
+      id: r.id,
+      store_code: r.store_code,
+      store_name: r.store ? r.store.store_name : '',
+      product_id: r.product_id,
+      product_name: r.product ? r.product.product_name : '',
+      product_code: r.product ? r.product.product_code : '',
+      record_date: r.record_date,
+      quantity: r.quantity,
+      updated_at: r.updatedAt,
+    }));
+
+    res.json({ data });
+  } catch (err) {
+    console.error('库存报表查询失败:', err);
+    res.status(500).json({ error: '查询失败' });
+  }
+});
+
+// 导出库存报表 CSV
+router.get('/api/admin/inventory/export', async (req, res) => {
+  try {
+    const { store_code, product_id, start_date, end_date } = req.query;
+    const where = {};
+    if (store_code) where.store_code = store_code;
+    if (product_id) where.product_id = parseInt(product_id, 10);
+    if (start_date || end_date) {
+      where.record_date = {};
+      if (start_date) where.record_date[Op.gte] = start_date;
+      if (end_date) where.record_date[Op.lte] = end_date;
+    } else {
+      where.record_date = new Date().toISOString().slice(0, 10);
+    }
+    const records = await InventoryRecord.findAll({
+      where,
+      include: [
+        { model: Product, as: 'product', attributes: ['product_name', 'product_code'] },
+        { model: Store, as: 'store', attributes: ['store_name'] },
+      ],
+      order: [['store_code', 'ASC'], ['record_date', 'DESC']],
+    });
+    const BOM = '\uFEFF';
+    let csv = BOM + '门店编码,门店名称,商品条码,商品名称,库存数量,记录日期,更新时间\n';
+    for (const r of records) {
+      csv += [r.store_code, r.store ? r.store.store_name : '', r.product ? r.product.product_code : '', r.product ? r.product.product_name : '', r.quantity, r.record_date, r.updatedAt ? new Date(r.updatedAt).toISOString().replace('T',' ').slice(0,19) : ''].join(',') + '\n';
+    }
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename=' + encodeURIComponent('库存报表.csv'));
+    res.send(csv);
+  } catch (err) {
+    console.error('导出失败:', err);
+    res.status(500).json({ error: '导出失败' });
   }
 });
 

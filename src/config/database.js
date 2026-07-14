@@ -26,6 +26,8 @@ if (DB_DIALECT === 'mysql') {
       port: parseInt(process.env.DB_PORT || '3306', 10),
       dialect: 'mysql',
       logging: false,
+      timezone: '+08:00',
+      dialectOptions: { timezone: '+08:00' },
       define: {
         ...commonDefine,
         charset: 'utf8mb4',
@@ -52,6 +54,7 @@ if (DB_DIALECT === 'mysql') {
     dialect: 'sqlite',
     storage: dbPath,
     logging: false,
+    timezone: '+08:00',
     define: commonDefine,
   });
   console.log(`[DB] 使用 SQLite 数据库: ${dbPath}`);

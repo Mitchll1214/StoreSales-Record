@@ -892,6 +892,14 @@ h6 { font-weight: 600; color: var(--gray-600); font-size: 0.86rem; }
 
 a.btn { text-decoration: none; }
 
+/* 侧边栏收藏星标 */
+.fav-star {
+  font-size: 0.85rem; opacity: 0.3; cursor: pointer; transition: all var(--fast);
+  color: var(--amber);
+}
+.fav-star:hover { opacity: 0.7; }
+.fav-star.bi-star-fill { opacity: 0.85; }
+
 /* 空状态 */
 .text-muted { color: var(--gray-500) !important; }
 

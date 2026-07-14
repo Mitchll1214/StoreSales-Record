@@ -58,5 +58,45 @@ document.addEventListener('DOMContentLoaded', function() {
       setTimeout(closeMenu, 150);
     });
   });
+
+  // ===== 收藏切换：注入到页面标题旁 =====
+  var pageKey = '<%= typeof currentPage !== "undefined" ? currentPage : "" %>';
+  if (pageKey && pageKey !== 'home') {
+    var h4 = document.querySelector('.main-content h4');
+    if (h4) {
+      var btn = document.createElement('span');
+      btn.className = 'fav-page-toggle';
+      btn.title = '收藏此页面';
+      btn.innerHTML = '<i class="bi bi-bookmark-plus"></i>';
+      btn.style.cssText = 'cursor:pointer;font-size:1.1rem;margin-left:8px;opacity:.35;transition:all .2s;';
+      btn.onmouseenter = function() { this.style.opacity = '.8'; };
+      btn.onmouseleave = function() { if (!this.dataset.on) this.style.opacity = '.35'; };
+
+      // 加载初始状态
+      fetch('/api/favorites').then(function(r){return r.json()}).then(function(keys){
+        if (keys.includes(pageKey)) {
+          btn.innerHTML = '<i class="bi bi-bookmark-check-fill"></i>';
+          btn.style.opacity = '.85';
+          btn.dataset.on = '1';
+        }
+      }).catch(function(){});
+
+      btn.onclick = function() {
+        fetch('/api/favorites', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({page_key:pageKey})})
+          .then(function(r){return r.json()}).then(function(d){
+            if (d.favorited) {
+              btn.innerHTML = '<i class="bi bi-bookmark-check-fill"></i>';
+              btn.style.opacity = '.85';
+              btn.dataset.on = '1';
+            } else {
+              btn.innerHTML = '<i class="bi bi-bookmark-plus"></i>';
+              btn.style.opacity = '.35';
+              btn.dataset.on = '';
+            }
+          });
+      };
+      h4.appendChild(btn);
+    }
+  }
 });
 </script>

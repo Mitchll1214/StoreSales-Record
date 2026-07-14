@@ -2,6 +2,7 @@
 const express = require('express');
 const https = require('https');
 const { authRequired } = require('../middleware/auth');
+const { UserFavorite } = require('../models');
 
 const router = express.Router();
 
@@ -77,16 +78,31 @@ router.get('/home', authRequired, async (req, res) => {
 
   const greeting = getGreeting();
   const now = getBeijingTime();
+  const favorites = await UserFavorite.findAll({ where: { user_id: req.user.id }, attributes: ['page_key'] });
+  const favKeys = favorites.map(f => f.page_key);
 
   res.render('home', {
-    user: req.user,
-    currentPage: 'home',
-    title: '首页',
-    quote,
-    source,
-    greeting,
-    now,
+    user: req.user, currentPage: 'home', title: '首页',
+    quote, source, greeting, now, favKeys,
   });
+});
+
+// 获取收藏列表
+router.get('/api/favorites', authRequired, async (req, res) => {
+  try {
+    const favs = await UserFavorite.findAll({ where: { user_id: req.user.id }, attributes: ['page_key'] });
+    res.json(favs.map(f => f.page_key));
+  } catch (err) { res.status(500).json({ error: '查询失败' }); }
+});
+
+// 切换收藏
+router.post('/api/favorites', authRequired, async (req, res) => {
+  try {
+    const { page_key } = req.body;
+    const existing = await UserFavorite.findOne({ where: { user_id: req.user.id, page_key } });
+    if (existing) { await existing.destroy(); res.json({ favorited: false }); }
+    else { await UserFavorite.create({ user_id: req.user.id, page_key }); res.json({ favorited: true }); }
+  } catch (err) { res.status(500).json({ error: '操作失败' }); }
 });
 
 // 获取北京时间（解决 Docker 容器 UTC 时区问题）

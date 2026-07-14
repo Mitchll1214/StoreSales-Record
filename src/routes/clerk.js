@@ -1,16 +1,13 @@
 // 店员功能路由 — 信息管理、销售录入、销售数据查询
 const express = require('express');
 const { Op } = require('sequelize');
-const { User, Product, SalesRecord, UserProduct, StoreProduct, OperationLog, Schedule } = require('../models');
+const { User, Product, SalesRecord, UserProduct, StoreProduct, OperationLog, Schedule, InventoryRecord } = require('../models');
 const { authRequired, clerkRequired } = require('../middleware/auth');
 
 const router = express.Router();
 
-// 获取北京时间（Docker 容器内 UTC 时区修正）
-function beijingNow() {
-  const utc = new Date();
-  return new Date(utc.getTime() + 8 * 60 * 60 * 1000);
-}
+// 获取北京时间
+const beijingNow = () => new Date();
 
 // 仅对 /clerk/* 和 /api/clerk/* 路径启用登录 + 店员角色校验
 router.use('/clerk', authRequired, clerkRequired);
@@ -83,6 +80,11 @@ router.get('/clerk/schedules', async (req, res) => {
     currentPage: 'schedules',
     title: '门店排班',
   });
+});
+
+// 库存上报页面
+router.get('/clerk/inventory', (req, res) => {
+  res.render('clerk/inventory', { user: req.user, currentPage: 'inventory', title: '库存上报' });
 });
 
 // ========== API路由 ==========
@@ -321,6 +323,64 @@ router.get('/api/clerk/schedules', async (req, res) => {
   } catch (err) {
     console.error('查询排班失败:', err);
     res.status(500).json({ error: '查询失败' });
+  }
+});
+
+// ========== 库存上报 API ==========
+
+// 查询店员今日库存数据（自动回填）
+router.get('/api/clerk/inventory', async (req, res) => {
+  try {
+    const date = req.query.date || new Date().toISOString().slice(0, 10);
+    const records = await InventoryRecord.findAll({
+      where: { store_code: req.user.store_code, record_date: date },
+      attributes: ['product_id', 'quantity', 'updatedAt'],
+    });
+    const map = {};
+    records.forEach(r => { map[r.product_id] = { qty: r.quantity, time: r.updatedAt }; });
+    res.json(map);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: '查询失败' });
+  }
+});
+
+// 提交库存（upsert: 门店+商品+日期 唯一）
+router.post('/api/clerk/inventory', async (req, res) => {
+  try {
+    const { items, date } = req.body;
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: '请提交至少一条库存数据' });
+    }
+
+    const recordDate = date || new Date().toISOString().slice(0, 10);
+    const storeCode = req.user.store_code;
+
+    for (const item of items) {
+      if (!item.product_id || item.quantity === undefined) continue;
+      await InventoryRecord.upsert({
+        store_code: storeCode,
+        product_id: item.product_id,
+        record_date: recordDate,
+        quantity: parseInt(item.quantity, 10) || 0,
+      });
+    }
+
+    res.json({ success: true, message: '库存上报成功' });
+    // 记录操作日志
+    try {
+      const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+      await OperationLog.create({
+        user_phone: req.user.phone,
+        user_name: req.user.name,
+        action: `库存上报：${items.length} 条 (日期:${recordDate} 门店:${storeCode})`,
+        ip_address: ip,
+        created_at: beijingNow(),
+      });
+    } catch (_) { /* 日志失败不影响主流程 */ }
+  } catch (err) {
+    console.error('库存上报失败:', err);
+    res.status(500).json({ error: '上报失败' });
   }
 });
 
