@@ -1,102 +1,181 @@
 <!-- 公共头部 — 显示系统标题和当前用户信息 -->
 <nav class="navbar">
   <div class="container-fluid">
-    <!-- 移动端菜单按钮 -->
     <button class="btn d-md-none me-2" id="menuToggle" type="button" aria-label="菜单" style="border:none;background:transparent;color:var(--gray-500);">
       <i class="bi bi-list fs-4"></i>
     </button>
     <a class="navbar-brand" href="/home">
-      <i class="bi bi-shop-window"></i> 门店销售统计系统
+      <i class="bi bi-shop-window"></i> <span data-i18n="title">门店销售统计系统</span>
     </a>
-    <div class="d-flex align-items-center ms-auto gap-3">
+    <div class="d-flex align-items-center ms-auto gap-2">
+      <button class="lang-toggle d-none d-md-flex" id="langToggle" title="语言 / Language">
+        <span data-i18n="lang">中</span>
+      </button>
+      <button class="theme-toggle" id="themeToggle" title="深色模式">
+        <i class="bi bi-moon-stars"></i>
+      </button>
       <span class="d-none d-md-inline-flex align-items-center gap-2 text-secondary" style="font-size:0.85rem;">
         <i class="bi bi-person-circle" style="color:var(--primary-light);"></i>
         <span style="color:var(--gray-600);"><%= user.name %></span>
-        <span class="badge" style="background:var(--primary-bg);color:var(--primary);font-weight:600;">
-          <%= user.role === 'admin' ? '管理员' : '店员' %>
+        <span class="badge" id="roleBadge" style="background:var(--primary-bg);color:var(--primary);font-weight:600;">
+          <span data-i18n="role_admin">管理员</span><% if (user.role !== 'admin') { %><span data-i18n="role_clerk">店员</span><% } %>
         </span>
       </span>
       <a href="/logout" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" style="border-color:var(--gray-200);">
-        <i class="bi bi-box-arrow-right"></i> <span class="d-none d-sm-inline">退出</span>
+        <i class="bi bi-box-arrow-right"></i> <span class="d-none d-sm-inline" data-i18n="logout">退出</span>
       </a>
     </div>
   </div>
 </nav>
 
 <script>
-// 移动端侧边栏折叠/展开
-document.addEventListener('DOMContentLoaded', function() {
+(function() {
+  // ===== 深色模式 =====
+  var themeBtn = document.getElementById('themeToggle');
+  var savedTheme = localStorage.getItem('theme');
+  var isDark = savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  if (isDark) { document.documentElement.setAttribute('data-theme','dark'); if (themeBtn) themeBtn.innerHTML = '<i class="bi bi-sun"></i>'; }
+  if (themeBtn) themeBtn.addEventListener('click', function() {
+    var dark = document.documentElement.getAttribute('data-theme') !== 'dark';
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : '');
+    localStorage.setItem('theme', dark ? 'dark' : 'light');
+    themeBtn.innerHTML = dark ? '<i class="bi bi-sun"></i>' : '<i class="bi bi-moon-stars"></i>';
+  });
+
+  // ===== 多语言 — 完整字典 =====
+  var i18n = {
+    zh: {
+      title:'门店销售统计系统', lang:'中', logout:'退出', fav:'收藏此页面',
+      role_admin:'管理员', role_clerk:'店员',
+      mn_home:'首页', mn_users:'人员管理', mn_products:'商品管理',
+      mn_stores:'门店管理', mn_schedules:'排班管理', mn_reports:'销售统计报表',
+      mn_sales_detail:'销售统计明细表', mn_inventory:'库存报表', mn_oplogs:'操作日志',
+      mn_info:'信息管理', mn_sales_entry:'销售录入', mn_sales_query:'销售数据查询',
+      mn_inventory_clerk:'库存上报',
+      pg_users:'人员管理', pg_products:'商品管理', pg_stores:'门店管理',
+      pg_schedules:'排班管理', pg_reports:'销售统计报表', pg_sales_detail:'销售统计明细表',
+      pg_inventory:'库存报表', pg_operation_logs:'操作日志',
+      pg_info:'信息管理', pg_sales_entry:'销售录入', pg_sales_query:'销售数据查询',
+      btn_save:'保存', btn_cancel:'取消', btn_search:'查询', btn_export:'导出CSV',
+      btn_add:'新增', btn_edit:'编辑', btn_delete:'删除', btn_reset:'重置密码',
+      lb_store:'门店', lb_product:'商品', lb_date:'日期'
+    },
+    en: {
+      title:'Store Sales System', lang:'EN', logout:'Logout', fav:'Bookmark',
+      role_admin:'Admin', role_clerk:'Clerk',
+      mn_home:'Home', mn_users:'Staff', mn_products:'Products',
+      mn_stores:'Stores', mn_schedules:'Schedule', mn_reports:'Sales Report',
+      mn_sales_detail:'Sales Detail', mn_inventory:'Inventory', mn_oplogs:'Audit Log',
+      mn_info:'Profile', mn_sales_entry:'Sales Entry', mn_sales_query:'Sales Query',
+      mn_inventory_clerk:'Inventory',
+      pg_users:'Staff Management', pg_products:'Product Management', pg_stores:'Store Management',
+      pg_schedules:'Schedule', pg_reports:'Sales Report', pg_sales_detail:'Sales Detail',
+      pg_inventory:'Inventory Report', pg_operation_logs:'Audit Log',
+      pg_info:'Profile', pg_sales_entry:'Sales Entry', pg_sales_query:'Sales Query',
+      btn_save:'Save', btn_cancel:'Cancel', btn_search:'Search', btn_export:'Export CSV',
+      btn_add:'Add', btn_edit:'Edit', btn_delete:'Delete', btn_reset:'Reset Pwd',
+      lb_store:'Store', lb_product:'Product', lb_date:'Date'
+    }
+  };
+  var lang = localStorage.getItem('lang') || 'zh';
+  var langBtn = document.getElementById('langToggle');
+
+  function applyLang(l) {
+    document.querySelectorAll('[data-i18n]').forEach(function(el) {
+      var key = el.getAttribute('data-i18n');
+      if (i18n[l] && i18n[l][key]) el.textContent = i18n[l][key];
+    });
+    // 翻译当前页面标题
+    var pageKey = '<%= typeof currentPage !== "undefined" ? currentPage : "" %>';
+    if (pageKey && pageKey !== 'home') {
+      var pgKey = 'pg_' + pageKey.replace(/-/g,'_');
+      var h4 = document.querySelector('.main-content h4');
+      if (h4 && i18n[l][pgKey]) {
+        // 保留收藏按钮
+        var favBtn = h4.querySelector('.fav-page-toggle');
+        var iconHtml = h4.querySelector('i') ? h4.querySelector('i').outerHTML : '';
+        if (favBtn) { h4.innerHTML = iconHtml + ' ' + i18n[l][pgKey]; h4.appendChild(favBtn); }
+        else { h4.innerHTML = iconHtml + ' ' + i18n[l][pgKey]; }
+      }
+    }
+    // 更新角色标签
+    var roleBadge = document.getElementById('roleBadge');
+    if (roleBadge) {
+      <% if (user.role === 'admin') { %>
+        roleBadge.textContent = i18n[l].role_admin;
+      <% } else { %>
+        roleBadge.textContent = i18n[l].role_clerk;
+      <% } %>
+    }
+    if (langBtn) { var lb = langBtn.querySelector('[data-i18n]'); if (lb) lb.textContent = i18n[l].lang; }
+    localStorage.setItem('lang', l);
+  }
+
+  if (langBtn) langBtn.addEventListener('click', function() {
+    lang = lang === 'zh' ? 'en' : 'zh';
+    applyLang(lang);
+  });
+
+  // 延迟到 DOM 加载完成后再应用语言（确保侧边栏已渲染）
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { applyLang(lang); });
+  } else {
+    applyLang(lang);
+  }
+
+  // ===== 移动端侧边栏 =====
   var toggle = document.getElementById('menuToggle');
   var sidebar = document.querySelector('.sidebar');
-  if (!toggle || !sidebar) return;
-
-  // 创建遮罩层
-  var overlay = document.createElement('div');
-  overlay.className = 'sidebar-overlay';
-  overlay.style.cssText = 'display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.4);z-index:1040;';
-  document.body.appendChild(overlay);
-
-  function openMenu() {
-    sidebar.classList.add('sidebar-show');
-    overlay.style.display = 'block';
-  }
-  function closeMenu() {
-    sidebar.classList.remove('sidebar-show');
-    overlay.style.display = 'none';
+  if (toggle && sidebar) {
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.4);z-index:1040;';
+    document.body.appendChild(overlay);
+    function openMenu() { sidebar.classList.add('sidebar-show'); overlay.style.display = 'block'; }
+    function closeMenu() { sidebar.classList.remove('sidebar-show'); overlay.style.display = 'none'; }
+    toggle.addEventListener('click', function(e) { e.stopPropagation(); sidebar.classList.contains('sidebar-show') ? closeMenu() : openMenu(); });
+    overlay.addEventListener('click', closeMenu);
+    sidebar.querySelectorAll('.list-group-item').forEach(function(item) { item.addEventListener('click', function() { setTimeout(closeMenu, 150); }); });
   }
 
-  toggle.addEventListener('click', function(e) {
-    e.stopPropagation();
-    sidebar.classList.contains('sidebar-show') ? closeMenu() : openMenu();
-  });
-
-  overlay.addEventListener('click', closeMenu);
-
-  // 点击菜单项后自动关闭
-  sidebar.querySelectorAll('.list-group-item').forEach(function(item) {
-    item.addEventListener('click', function() {
-      setTimeout(closeMenu, 150);
-    });
-  });
-
-  // ===== 收藏切换：注入到页面标题旁 =====
+  // ===== 收藏切换 =====
   var pageKey = '<%= typeof currentPage !== "undefined" ? currentPage : "" %>';
   if (pageKey && pageKey !== 'home') {
     var h4 = document.querySelector('.main-content h4');
     if (h4) {
       var btn = document.createElement('span');
       btn.className = 'fav-page-toggle';
-      btn.title = '收藏此页面';
+      btn.title = i18n[lang].fav;
       btn.innerHTML = '<i class="bi bi-bookmark-plus"></i>';
       btn.style.cssText = 'cursor:pointer;font-size:1.1rem;margin-left:8px;opacity:.35;transition:all .2s;';
       btn.onmouseenter = function() { this.style.opacity = '.8'; };
       btn.onmouseleave = function() { if (!this.dataset.on) this.style.opacity = '.35'; };
-
-      // 加载初始状态
       fetch('/api/favorites').then(function(r){return r.json()}).then(function(keys){
-        if (keys.includes(pageKey)) {
-          btn.innerHTML = '<i class="bi bi-bookmark-check-fill"></i>';
-          btn.style.opacity = '.85';
-          btn.dataset.on = '1';
-        }
+        if (keys.includes(pageKey)) { btn.innerHTML = '<i class="bi bi-bookmark-check-fill"></i>'; btn.style.opacity = '.85'; btn.dataset.on = '1'; }
       }).catch(function(){});
-
       btn.onclick = function() {
         fetch('/api/favorites', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({page_key:pageKey})})
           .then(function(r){return r.json()}).then(function(d){
-            if (d.favorited) {
-              btn.innerHTML = '<i class="bi bi-bookmark-check-fill"></i>';
-              btn.style.opacity = '.85';
-              btn.dataset.on = '1';
-            } else {
-              btn.innerHTML = '<i class="bi bi-bookmark-plus"></i>';
-              btn.style.opacity = '.35';
-              btn.dataset.on = '';
-            }
+            if (d.favorited) { btn.innerHTML = '<i class="bi bi-bookmark-check-fill"></i>'; btn.style.opacity = '.85'; btn.dataset.on = '1'; }
+            else { btn.innerHTML = '<i class="bi bi-bookmark-plus"></i>'; btn.style.opacity = '.35'; btn.dataset.on = ''; }
           });
       };
       h4.appendChild(btn);
     }
   }
-});
+
+  // ===== 注入底部版权栏 =====
+  document.addEventListener('DOMContentLoaded', function() {
+    var container = document.querySelector('.layout-container');
+    if (container && !document.querySelector('.site-footer')) {
+      var footer = document.createElement('footer');
+      footer.className = 'site-footer';
+      footer.innerHTML = '<span>&copy; ' + new Date().getFullYear() + ' StoreSales-Record</span>' +
+        '<span class="footer-dot">·</span>' +
+        '<a href="https://github.com/Mitchll1214/StoreSales-Record" target="_blank" rel="noopener"><i class="bi bi-github me-1"></i>GitHub</a>' +
+        '<span class="footer-dot">·</span>' +
+        '<span>MIT License</span>';
+      container.parentNode.insertBefore(footer, container.nextSibling);
+    }
+  });
+})();
 </script>
