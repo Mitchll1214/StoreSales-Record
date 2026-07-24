@@ -115,7 +115,7 @@ a:hover { color: var(--primary-hover); }
 .navbar .btn-outline-secondary {
   color: var(--gray-600); border: 1px solid rgba(0,0,0,0.08);
   font-size: 0.82rem; padding: 5px 14px; border-radius: 20px;
-  transition: all var(--fast); background: rgba(255,255,255,0.5);
+  transition: color var(--fast), background var(--fast), border-color var(--fast); background: rgba(255,255,255,0.5);
 }
 .navbar .btn-outline-secondary:hover {
   color: var(--gray-800); background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.12);
@@ -147,7 +147,7 @@ a:hover { color: var(--primary-hover); }
 .sidebar .list-group-item {
   border: none; margin: 2px 10px; border-radius: var(--radius-sm);
   padding: 9px 14px; font-size: 0.86rem; color: var(--gray-400);
-  background: transparent; transition: all var(--fast);
+  background: transparent; transition: background var(--fast), color var(--fast), opacity var(--fast);
   display: flex; align-items: center; gap: 10px; font-weight: 450;
   position: relative;
 }
@@ -179,9 +179,8 @@ a:hover { color: var(--primary-hover); }
   box-shadow: var(--shadow-xs); background: var(--white);
   overflow: hidden;
   transition: box-shadow var(--mid), transform var(--mid);
-  will-change: box-shadow;
 }
-.card:hover { box-shadow: var(--shadow-sm); }
+.card:hover { box-shadow: var(--shadow-sm); will-change: box-shadow; }
 
 .card-header {
   background: rgba(248,250,252,0.6);
@@ -228,7 +227,7 @@ a:hover { color: var(--primary-hover); }
 .form-control, .form-select {
   border: 1px solid var(--gray-300); border-radius: var(--radius-sm);
   padding: 9px 13px; font-size: 0.875rem; color: var(--gray-800);
-  transition: all 0.18s var(--spring); background: var(--white);
+  transition: border-color 0.18s var(--spring), box-shadow 0.18s var(--spring); background: var(--white);
 }
 .form-control:focus, .form-select:focus {
   border-color: var(--primary);
@@ -250,7 +249,7 @@ a:hover { color: var(--primary-hover); }
 .btn {
   font-weight: 550; font-size: 0.85rem; border-radius: var(--radius-sm);
   padding: 8px 18px;
-  transition: all 0.2s var(--spring);
+  transition: transform 0.2s var(--spring), box-shadow 0.2s var(--spring), background 0.2s var(--spring), opacity 0.2s var(--spring);
   letter-spacing: 0.01em;
   display: inline-flex; align-items: center; justify-content: center;
   gap: 6px; cursor: pointer; border: 1px solid transparent;
@@ -300,7 +299,7 @@ a:hover { color: var(--primary-hover); }
 .btn-outline-primary, .btn-outline-info, .btn-outline-success,
 .btn-outline-danger, .btn-outline-secondary {
   border: 1px solid var(--gray-300); background: var(--white);
-  transition: all 0.2s var(--spring);
+  transition: background 0.2s var(--spring), border-color 0.2s var(--spring), color 0.2s var(--spring), box-shadow 0.2s var(--spring);
 }
 
 .btn-outline-primary { color: var(--primary); }
@@ -337,7 +336,7 @@ button:focus:not(:focus-visible) { outline: none; }
 .page-link {
   border: 1px solid var(--gray-200); color: var(--gray-600);
   border-radius: var(--radius-sm); padding: 7px 13px; font-size: 0.85rem;
-  transition: all 0.18s var(--spring); background: var(--white);
+  transition: background 0.18s var(--spring), color 0.18s var(--spring), border-color 0.18s var(--spring); background: var(--white);
 }
 .page-link:hover { background: var(--primary-bg); color: var(--primary); border-color: var(--primary-border); }
 .page-item.active .page-link { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600; }
@@ -445,7 +444,7 @@ button:focus:not(:focus-visible) { outline: none; }
 /* 快捷入口卡片 */
 .quick-card {
   border-radius: var(--radius); padding: 24px 18px; text-align: center;
-  transition: all 0.35s var(--spring-bounce); cursor: pointer;
+  transition: transform 0.35s var(--spring-bounce), box-shadow 0.35s var(--spring-bounce); cursor: pointer;
   color: #fff; text-decoration: none;
   display: flex; flex-direction: column; align-items: center; gap: 12px;
   height: 100%; position: relative; overflow: hidden;
@@ -454,7 +453,7 @@ button:focus:not(:focus-visible) { outline: none; }
   content: ''; position: absolute; top: 0; right: 0;
   width: 80px; height: 80px; border-radius: 0 0 0 80px;
   background: rgba(255,255,255,0.1); pointer-events: none;
-  transition: all 0.35s var(--spring-bounce);
+  transition: width 0.35s var(--spring-bounce), height 0.35s var(--spring-bounce);
 }
 .quick-card:hover {
   transform: translateY(-5px) scale(1.02);
@@ -488,14 +487,14 @@ button:focus:not(:focus-visible) { outline: none; }
   background: rgba(255,255,255,0.1); border: none; color: #fff;
   width: 34px; height: 34px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  transition: all 0.2s var(--spring); cursor: pointer;
+  transition: background 0.2s var(--spring), transform 0.2s var(--spring); cursor: pointer;
 }
 .calendar-toolbar .btn-month:hover { background: rgba(255,255,255,0.22); color: #fff; transform: scale(1.08); }
 .calendar-toolbar .btn-month:active { transform: scale(0.94); }
 .calendar-toolbar .btn-today {
   background: rgba(255,255,255,0.15); border: none; color: #fff;
   border-radius: 20px; padding: 4px 16px; font-size: 0.8rem;
-  transition: all 0.2s var(--spring); cursor: pointer;
+  transition: background 0.2s var(--spring); cursor: pointer;
 }
 .calendar-toolbar .btn-today:hover { background: rgba(255,255,255,0.3); color: #fff; }
 
@@ -555,8 +554,8 @@ h6 { font-weight: 600; color: var(--gray-600); font-size: 0.86rem; letter-spacin
 a.btn { text-decoration: none; }
 
 /* 收藏书签 */
-.fav-page-toggle { transition: all 0.2s var(--spring); vertical-align: middle; display: inline-flex; align-items: center; }
-.fav-star { font-size: 0.85rem; opacity: 0.3; cursor: pointer; transition: all var(--fast); color: var(--amber); }
+.fav-page-toggle { transition: opacity 0.2s var(--spring); vertical-align: middle; display: inline-flex; align-items: center; }
+.fav-star { font-size: 0.85rem; opacity: 0.3; cursor: pointer; transition: color var(--fast), opacity var(--fast); color: var(--amber); }
 .fav-star:hover { opacity: 0.7; }
 .fav-star.bi-star-fill { opacity: 0.85; }
 
@@ -767,7 +766,7 @@ a.btn { text-decoration: none; }
   cursor: pointer; font-size: 1.1rem; padding: 4px 8px; border-radius: 6px;
   border: 1px solid rgba(0,0,0,0.08); background: transparent;
   display: inline-flex; align-items: center; justify-content: center;
-  transition: all var(--fast); color: var(--gray-500);
+  transition: background var(--fast), color var(--fast), border-color var(--fast); color: var(--gray-500);
 }
 .theme-toggle:hover, .lang-toggle:hover { background: rgba(0,0,0,0.04); color: var(--gray-700); }
 [data-theme="dark"] .theme-toggle, [data-theme="dark"] .lang-toggle {

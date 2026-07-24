@@ -123,48 +123,49 @@
     applyLang(lang);
   }
 
-  // ===== 移动端侧边栏 =====
-  var toggle = document.getElementById('menuToggle');
-  var sidebar = document.querySelector('.sidebar');
-  if (toggle && sidebar) {
-    var overlay = document.createElement('div');
-    overlay.style.cssText = 'display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.4);z-index:1040;';
-    document.body.appendChild(overlay);
-    function openMenu() { sidebar.classList.add('sidebar-show'); overlay.style.display = 'block'; }
-    function closeMenu() { sidebar.classList.remove('sidebar-show'); overlay.style.display = 'none'; }
-    toggle.addEventListener('click', function(e) { e.stopPropagation(); sidebar.classList.contains('sidebar-show') ? closeMenu() : openMenu(); });
-    overlay.addEventListener('click', closeMenu);
-    sidebar.querySelectorAll('.list-group-item').forEach(function(item) { item.addEventListener('click', function() { setTimeout(closeMenu, 150); }); });
-  }
-
-  // ===== 收藏切换 =====
-  var pageKey = '<%= typeof currentPage !== "undefined" ? currentPage : "" %>';
-  if (pageKey && pageKey !== 'home') {
-    var h4 = document.querySelector('.main-content h4');
-    if (h4) {
-      var btn = document.createElement('span');
-      btn.className = 'fav-page-toggle';
-      btn.title = i18n[lang].fav;
-      btn.innerHTML = '<i class="bi bi-bookmark-plus"></i>';
-      btn.style.cssText = 'cursor:pointer;font-size:1.1rem;margin-left:8px;opacity:.35;transition:all .2s;';
-      btn.onmouseenter = function() { this.style.opacity = '.8'; };
-      btn.onmouseleave = function() { if (!this.dataset.on) this.style.opacity = '.35'; };
-      fetch('/api/favorites').then(function(r){return r.json()}).then(function(keys){
-        if (keys.includes(pageKey)) { btn.innerHTML = '<i class="bi bi-bookmark-check-fill"></i>'; btn.style.opacity = '.85'; btn.dataset.on = '1'; }
-      }).catch(function(){});
-      btn.onclick = function() {
-        fetch('/api/favorites', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({page_key:pageKey})})
-          .then(function(r){return r.json()}).then(function(d){
-            if (d.favorited) { btn.innerHTML = '<i class="bi bi-bookmark-check-fill"></i>'; btn.style.opacity = '.85'; btn.dataset.on = '1'; }
-            else { btn.innerHTML = '<i class="bi bi-bookmark-plus"></i>'; btn.style.opacity = '.35'; btn.dataset.on = ''; }
-          });
-      };
-      h4.appendChild(btn);
-    }
-  }
-
-  // ===== 注入底部版权栏 =====
+  // ===== 移动端侧边栏 & 收藏切换 & 底部版权 — 全部推迟到 DOM 就绪 =====
   document.addEventListener('DOMContentLoaded', function() {
+    // 移动端侧边栏
+    var toggle = document.getElementById('menuToggle');
+    var sidebar = document.querySelector('.sidebar');
+    if (toggle && sidebar) {
+      var overlay = document.createElement('div');
+      overlay.style.cssText = 'display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.4);z-index:1040;';
+      document.body.appendChild(overlay);
+      function openMenu() { sidebar.classList.add('sidebar-show'); overlay.style.display = 'block'; }
+      function closeMenu() { sidebar.classList.remove('sidebar-show'); overlay.style.display = 'none'; }
+      toggle.addEventListener('click', function(e) { e.stopPropagation(); sidebar.classList.contains('sidebar-show') ? closeMenu() : openMenu(); });
+      overlay.addEventListener('click', closeMenu);
+      sidebar.querySelectorAll('.list-group-item').forEach(function(item) { item.addEventListener('click', function() { setTimeout(closeMenu, 150); }); });
+    }
+
+    // 收藏切换
+    var pageKey = '<%= typeof currentPage !== "undefined" ? currentPage : "" %>';
+    if (pageKey && pageKey !== 'home') {
+      var h4 = document.querySelector('.main-content h4');
+      if (h4) {
+        var btn = document.createElement('span');
+        btn.className = 'fav-page-toggle';
+        btn.title = i18n[lang].fav;
+        btn.innerHTML = '<i class="bi bi-bookmark-plus"></i>';
+        btn.style.cssText = 'cursor:pointer;font-size:1.1rem;margin-left:8px;opacity:.35;';
+        btn.addEventListener('mouseenter', function() { this.style.opacity = '.8'; });
+        btn.addEventListener('mouseleave', function() { if (!this.dataset.on) this.style.opacity = '.35'; });
+        fetch('/api/favorites').then(function(r){return r.json()}).then(function(keys){
+          if (keys.includes(pageKey)) { btn.innerHTML = '<i class="bi bi-bookmark-check-fill"></i>'; btn.style.opacity = '.85'; btn.dataset.on = '1'; }
+        }).catch(function(){});
+        btn.addEventListener('click', function() {
+          fetch('/api/favorites', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({page_key:pageKey})})
+            .then(function(r){return r.json()}).then(function(d){
+              if (d.favorited) { btn.innerHTML = '<i class="bi bi-bookmark-check-fill"></i>'; btn.style.opacity = '.85'; btn.dataset.on = '1'; }
+              else { btn.innerHTML = '<i class="bi bi-bookmark-plus"></i>'; btn.style.opacity = '.35'; btn.dataset.on = ''; }
+            });
+        });
+        h4.appendChild(btn);
+      }
+    }
+
+    // 注入底部版权栏
     var container = document.querySelector('.layout-container');
     if (container && !document.querySelector('.site-footer')) {
       var footer = document.createElement('footer');
